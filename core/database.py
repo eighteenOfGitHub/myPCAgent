@@ -26,28 +26,40 @@ def initialize(db_path: str) -> None:
 
     try:
         db_dir.mkdir(parents=True, exist_ok=True)
+        # --- 添加写权限测试 ---
         test_file = db_dir / ".write_test"
         test_file.touch()
         test_file.unlink()
+        # ---------------------
     except (OSError, PermissionError) as e:
         _logger.error(f"Cannot write to database directory {db_dir}: {e}")
         raise RuntimeError(f"Database directory not writable: {db_dir}") from e
 
     try:
-        # 👇 移除了 isolation_level=None
+        # 连接数据库
         conn = sqlite3.connect(
             _database_path,
             check_same_thread=False
-            # isolation_level=None  <- 删除此项
         )
         conn.row_factory = sqlite3.Row
         _connection = conn
+        
+        # ---- 关键修改：主动执行一个 SQL 操作 ----
+        # 这会强制 SQLite 尝试创建/打开文件，从而暴露路径或权限问题
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1") # 一个轻量且无害的查询
+        cursor.close()
+        # -----------------------------------------
+        
         _logger.info(f"Connected to SQLite database at {_database_path}")
         _logger.info("Database initialization completed.")
-    except Exception as e:
+    except Exception as e: # 捕获所有连接或初始查询相关的异常
         _logger.error(f"Failed to connect to SQLite database at {_database_path}: {e}")
-        _connection = None
-        raise
+        # 确保在初始化失败时清理连接
+        if _connection:
+            _connection.close()
+            _connection = None
+        raise # 重新抛出异常，让调用者知道初始化失败了
 
 
 def get_connection():
