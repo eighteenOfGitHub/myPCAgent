@@ -1,0 +1,86 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  simple:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  detailed:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s - %(lineno)d - %(message)s'
+  with_session_id:
+    format: '[Session: %(session_id)s] %(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+filters:
+  session_id_injector:
+    "()": "app.logging.session_context_filter.SessionIdInjectingFilter"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: with_session_id
+    stream: ext://sys.stdout
+    filters: [session_id_injector]
+
+  debug_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: with_session_id
+    filename: logs/debug.log
+    maxBytes: 10485760
+    backupCount: 5
+    encoding: utf8
+    filters: [session_id_injector]
+
+  info_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: with_session_id
+    filename: logs/info.log
+    maxBytes: 10485760
+    backupCount: 5
+    encoding: utf8
+    filters: [session_id_injector]
+
+  error_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: with_session_id
+    filename: logs/errors.log
+    maxBytes: 10485760
+    backupCount: 5
+    encoding: utf8
+    filters: [session_id_injector]
+
+loggers:
+  '':
+    level: DEBUG
+    handlers:
+    - console
+    - debug_file_handler
+    - info_file_handler
+    - error_file_handler
+    propagate: false
+  core:
+    level: DEBUG
+    handlers:
+    - console
+    - debug_file_handler
+    propagate: false
+  services:
+    level: INFO
+    handlers:
+    - console
+    - info_file_handler
+    propagate: false
+  tools:
+    level: INFO
+    handlers:
+    - console
+    - info_file_handler
+    propagate: false
+  app:
+    level: INFO
+    handlers:
+    - console
+    - info_file_handler
+    propagate: false
