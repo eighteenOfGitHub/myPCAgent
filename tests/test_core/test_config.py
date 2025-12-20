@@ -559,13 +559,37 @@ def test_get_logger_without_setup_logging():
 class TestGetSettings:
     """Test get_settings() in core/config.py"""
 
-    @patch("core.config.load_settings", return_value={"ENV": "test", "DEBUG": True})
-    def test_returns_full_settings_dict(self, mock_load: MagicMock):
-        """get_settings() should delegate to load_settings() and return its result."""
+    def test_returns_full_settings_dict(self):
+        """get_settings() should return a properly structured settings dictionary."""
+        from core.config import get_settings
+        
         settings = get_settings()
-
-        assert settings == {"ENV": "test", "DEBUG": True}
-        mock_load.assert_called_once_with()
+        
+        # 检验返回值的格式和结构
+        assert isinstance(settings, dict)
+        
+        # 检验主要配置节存在
+        expected_sections = ["app", "cli", "database", "model_defaults", "models", "services", "user_preferences", "web"]
+        for section in expected_sections:
+            assert section in settings, f"Missing section: {section}"
+        
+        # 检验 app 配置节的结构
+        assert isinstance(settings["app"], dict)
+        assert "debug" in settings["app"]
+        assert "name" in settings["app"]
+        assert "version" in settings["app"]
+        assert isinstance(settings["app"]["debug"], bool)
+        assert isinstance(settings["app"]["name"], str)
+        assert isinstance(settings["app"]["version"], str)
+        
+        # 检验嵌套结构存在
+        assert isinstance(settings["models"], dict)
+        assert isinstance(settings["user_preferences"], dict)
+        assert isinstance(settings["model_defaults"], dict)
+        
+        # 检验关键字段存在且类型正确
+        assert isinstance(settings["cli"]["default_mode"], str)
+        assert isinstance(settings["database"]["chat_history_path"], str)
 
 
 def test_initialize_app_success():
