@@ -149,29 +149,31 @@ def execute_non_query(query: str, params: tuple = ()) -> int:
         return cursor.rowcount
 
 
-def execute_script(script: str):
+def execute_script(sql_script: str) -> None:
     """
-    执行多条 SQL 语句脚本 (例如，创建表的 DDL 脚本)。
-
-    Args:
-        script (str): 包含多条 SQL 语句的脚本字符串。
-
-    Raises:
-        Exception: 如果脚本执行失败。
+    执行多条 SQL 语句（支持 DML），并在出错时回滚所有操作。
+    
+    注意：不支持 DDL（如 CREATE TABLE），因为 SQLite DDL 会隐式提交。
+    建议仅用于 INSERT/UPDATE/DELETE 等 DML 脚本。
     """
     conn = get_connection()
-    cursor = conn.cursor()
+    # 分割 SQL 脚本为单条语句（简单按 ';' 分割，适用于大多数场景）
+    statements = [
+        stmt.strip() 
+        for stmt in sql_script.split(';') 
+        if stmt.strip()
+    ]
+    
     try:
-        cursor.executescript(script)
+        # 显式开始事务（禁用 autocommit）
+        conn.execute("BEGIN")
+        for stmt in statements:
+            conn.execute(stmt)
         conn.commit()
     except Exception as e:
         conn.rollback()
-        _logger.error(
-            f"SQL script execution failed and was rolled back: {e}",
-            exc_info=True)
-        raise e
-    finally:
-        cursor.close()
+        _logger.error(f"Script execution failed, rolled back: {e}")
+        raise
 
 
 def close():
