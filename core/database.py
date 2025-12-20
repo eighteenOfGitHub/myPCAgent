@@ -9,9 +9,11 @@ SQLite 数据库管理模块。
 
 import sqlite3
 import os
+from pathlib import Path
 import logging
 from contextlib import contextmanager
 from typing import Generator, List, Any
+from typing import Optional
 
 # --- 模块级变量 ---
 _connection = None
@@ -19,55 +21,59 @@ _database_path = None
 _logger = logging.getLogger(__name__)
 
 
-def initialize(db_path: str = "data/chat_history.db"):
+def initialize(db_path: str) -> None:
     """
-    初始化数据库连接并创建必要的表。
-
+    初始化 SQLite 数据库连接。
+    
     Args:
-        db_path (str): SQLite 数据库文件的路径。默认为 "data/chat_history.db"。
-
+        db_path (str): 数据库文件的绝对或相对路径。必须由调用者提供。
+        
     Raises:
-        Exception: 如果初始化过程中发生错误。
+        ValueError: 如果 db_path 为空或 None。
+        RuntimeError: 如果数据库目录不可写或无法创建。
+        sqlite3.Error: 如果数据库连接失败。
     """
     global _connection, _database_path
+
+    if not db_path:
+        raise ValueError("db_path must be a non-empty string")
+
+    # 如果已初始化，可以选择：
+    #   - 报错（禁止重复初始化）
+    #   - 或关闭旧连接再初始化（此处选择报错，更安全）
+    if _connection is not None:
+        raise RuntimeError("Database already initialized. Call close() first if reinitializing.")
+
     _database_path = db_path
+    db_dir = Path(_database_path).parent
 
-    # 确保 data 目录存在
-    os.makedirs(os.path.dirname(_database_path), exist_ok=True)
-
+    # 验证并确保数据库目录可写
     try:
-        if _connection is None:
-            # check_same_thread=False 允许跨线程使用连接，但使用者需保证线程安全
-            _connection = sqlite3.connect(
-                _database_path, check_same_thread=False)
-            _connection.row_factory = sqlite3.Row  # 使得查询结果可以通过列名访问
-            _logger.info(f"Connected to SQLite database at {_database_path}")
+        db_dir.mkdir(parents=True, exist_ok=True)
+        # 可选：验证写权限（有些系统 mkdir 成功但无法写文件）
+        test_file = db_dir / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+    except (OSError, PermissionError) as e:
+        _logger.error(f"Cannot write to database directory {db_dir}: {e}")
+        raise RuntimeError(f"Database directory not writable: {db_dir}") from e
 
-        # --- 在此处放置创建表的 SQL 脚本 ---
-        # 示例：创建一个示例表。实际表应在对应 service 初始化时创建。
-        # 例如，在 services/chat_history_service.py 的初始化方法中调用 execute_script
-        # 来创建 chat_history 表。
-        # create_example_table_sql = """
-        # CREATE TABLE IF NOT EXISTS example_items (
-        #     id INTEGER PRIMARY KEY AUTOINCREMENT,
-        #     name TEXT NOT NULL,
-        #     description TEXT,
-        #     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        # );
-        # """
-        # execute_script(create_example_table_sql)
-        # ---------------------------------------
-
-        _logger.info(
-            "Database initialization completed (table creation logic should be in services).")
-
+    # 尝试连接数据库
+    try:
+        conn = sqlite3.connect(
+            _database_path,
+            check_same_thread=False,
+            isolation_level=None  # autocommit mode
+        )
+        conn.row_factory = sqlite3.Row
+        _connection = conn
+        _logger.info(f"Connected to SQLite database at {_database_path}")
+        _logger.info("Database initialization completed (table creation logic should be in services).")
     except Exception as e:
-        _logger.error(f"Failed to initialize database: {e}")
-        # 初始化失败时清理连接
-        if _connection:
-            _connection.close()
-            _connection = None
-        raise e
+        _logger.error(f"Failed to connect to SQLite database at {_database_path}: {e}")
+        # 确保不留下半初始化状态
+        _connection = None
+        raise  # 重新抛出原始异常（如 sqlite3.OperationalError）
 
 
 def get_connection():
