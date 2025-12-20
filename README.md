@@ -1,7 +1,7 @@
 
 # 🌲Your PC Agent
 
-目前正在尝试构建属于自己的PC Agent，正在“哐哧哐哧”构建中  
+目前正在尝试构建属于自己的PC Agent，“哐哧哐哧”构建中  
 I'm currently building my own PC Agent with clangling and clanking  
 
 ```
