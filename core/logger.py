@@ -14,7 +14,6 @@ from typing import Optional, Generator
 
 # --- 1. 基础 Logger 获取 ---
 
-
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
     获取一个已根据 config/logging_config.yaml 配置好的 Logger 实例。

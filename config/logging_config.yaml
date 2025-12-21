@@ -84,3 +84,11 @@ loggers:
     - console
     - info_file_handler
     propagate: false
+  httpx:
+    level: INFO
+    handlers: [console, info_file_handler]  # 或按需指定
+    propagate: false
+  httpcore:
+    level: INFO
+    handlers: [console, info_file_handler]
+    propagate: false

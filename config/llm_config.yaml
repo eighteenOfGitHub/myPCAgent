@@ -1,0 +1,66 @@
+# config/llm_config.yaml
+#
+# LLM 模型池与路由策略配置
+# 所有模型按 priority 降序排序（数值越大优先级越高）
+# 字段说明：
+#   - 必填字段：name, model, type
+#   - 可选字段：tags, enabled, api_base, api_key_env, priority
+
+llm_pool:
+  # 示例 1: 在线大模型（如 OpenAI、阿里云等）
+  - name: "gpt-4o"                     # 模型别名（唯一标识，用于日志和调试）
+    model: "gpt-4o"                    # 实际调用的模型名称（传递给 litellm/openai）
+    type: "online"                     # 模型类型：必须为 "online" 或 "local"
+    tags: ["general", "coding", "text"] # 任务标签，用于路由匹配（如 task_type="coding"）
+    enabled: true                      # 是否启用该模型（设为 false 可临时禁用）
+    priority: 100                      # 路由优先级（数值越大越优先，默认 0）
+
+  # 示例 2: 国产大模型（在线 API）
+  - name: "qwen-max"
+    model: "qwen/qwen-max"
+    type: "online"
+    tags: ["text", "chinese", "long-context"]
+    enabled: true
+    priority: 95
+
+  # 示例 3: 本地 Ollama 模型（需运行 ollama serve）
+  - name: "llama3-local"
+    model: "ollama/llama3"             # 格式：ollama/<model_name>
+    api_base: "http://localhost:11434" # 本地 LLM 服务地址（仅 local 类型需要）
+    type: "local"                      # 标记为本地模型（不会使用云端 API）
+    tags: ["general", "coding", "private"] # "private" 表示适合处理敏感数据
+    enabled: true
+    priority: 80                       # 本地模型优先级通常低于在线模型
+
+  # 示例 4: 本地 Qwen 32B
+  - name: "qwen3-local"
+    model: "ollama/qwen:32b"
+    api_base: "http://localhost:11434"
+    type: "local"
+    tags: ["text", "chinese", "private"]
+    enabled: true
+    priority: 85
+
+  # 示例 5: 语音识别模型（Whisper）
+  - name: "whisper-large"
+    model: "openai/whisper-large-v3"
+    type: "online"
+    tags: ["voice", "asr"]             # "asr" = Automatic Speech Recognition
+    enabled: true
+    priority: 90
+
+# 路由策略配置
+routing:
+  # 默认路由模式：
+  #   - "online": 优先使用在线模型（默认）
+  #   - "local":  仅使用本地模型（适用于隐私敏感场景）
+  default_mode: "online"
+
+  # 模型选择策略（当前仅支持 "priority"）
+  selection_strategy: "priority"
+
+  # 是否在模型调用失败时尝试下一个候选模型
+  retry_on_failure: true
+
+  # 最大总尝试次数（包括成功和失败）
+  max_total_attempts: 3
