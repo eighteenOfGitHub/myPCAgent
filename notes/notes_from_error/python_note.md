@@ -280,3 +280,176 @@ def f() -> str | None: ...      # 等价于 Optional[str]
 
 > `Optional[T]` 就是**“此地可能有 None”**的提示牌；  
 > **写接口时标清楚，拿到值时先判空**，就能既让静态检查器开心，也让运行时安全。
+
+# 三、__init__.py 机制
+
+`__init__.py` 是 Python 包（package）机制的核心组成部分。它的存在与否，直接决定了 Python 是否将一个目录视为**可导入的包**。
+
+---
+
+## 📦 1. 什么是包（Package）？
+
+在 Python 中：
+- **模块（Module）**：一个 `.py` 文件（如 `config.py`）
+- **包（Package）**：包含多个模块的**目录**，且该目录中必须有 `__init__.py`
+
+> ✅ 简单说：  
+> **有 `__init__.py` 的文件夹 = Python 包 = 可被 import**
+
+---
+
+## 🔧 2. `__init__.py` 的作用
+
+### (1) **标记目录为包**
+这是最基本的作用。没有它，Python 不会把目录当作包处理。
+
+```bash
+myproject/
+└── core/
+    ├── config.py
+```
+
+此时你无法写：
+```python
+from core.config import something  # ❌ ModuleNotFoundError
+```
+
+但加上 `__init__.py`：
+
+```bash
+myproject/
+└── core/
+    ├── __init__.py   ← 关键！
+    └── config.py
+```
+
+就可以：
+```python
+from core.config import something  # ✅ 成功
+```
+
+> 💡 即使 `__init__.py` 是空文件，也必须存在（Python < 3.3 需要；≥3.3 虽支持“隐式命名空间包”，但**强烈建议显式保留**以保证兼容性和明确性）。
+
+---
+
+### (2) **控制包的公开接口（推荐用法）**
+
+你可以在 `__init__.py` 中决定：
+- 哪些子模块对外暴露
+- 导入时自动执行什么逻辑
+- 简化用户导入路径
+
+#### 示例：`core/config/__init__.py`
+```python
+# core/config/__init__.py
+
+# 自动暴露常用类，让用户不用写完整路径
+from .llm_config import LlmConfig
+from .base import BaseConfig
+
+# 定义 __all__ 控制 from core.config import * 的行为（可选）
+__all__ = ["LlmConfig", "BaseConfig"]
+```
+
+这样用户可以简洁地写：
+```python
+from core.config import LlmConfig  # 而不是 from core.config.llm_config import LlmConfig
+```
+
+---
+
+### (3) **初始化逻辑（谨慎使用）**
+
+可以在 `__init__.py` 中执行一次性初始化操作，例如：
+
+```python
+# core/__init__.py
+import logging
+
+logging.basicConfig(level=logging.INFO)
+print("✅ Core package loaded")
+```
+
+> ⚠️ 注意：避免在 `__init__.py` 中做耗时操作或副作用强的操作（如连接数据库），因为只要有人 `import core.xxx`，这段代码就会执行。
+
+---
+
+## 🌐 3. 目录结构与导入关系示例
+
+假设项目结构如下：
+
+```
+project/
+├── main.py
+└── core/
+    ├── __init__.py
+    ├── agent.py
+    └── config/
+        ├── __init__.py
+        ├── base.py
+        └── llm_config.py
+```
+
+那么以下导入都合法：
+
+```python
+# 在 main.py 中
+from core.agent import Agent
+from core.config.base import BaseConfig
+from core.config import LlmConfig          # 如果 config/__init__.py 导出了 LlmConfig
+```
+
+---
+
+## 🆚 4. 没有 `__init__.py` 会怎样？
+
+| 场景 | 行为 |
+|------|------|
+| Python < 3.3 | 完全无法导入，报 `ImportError` |
+| Python ≥ 3.3 | 支持“隐式命名空间包”（PEP 420），但：<br> - 不能包含非 `.py` 文件（如数据文件）<br> - 不能有 `__file__` 属性<br> - IDE 可能无法正确解析<br> - **不适用于大多数常规项目** |
+
+> ✅ **最佳实践：始终显式添加 `__init__.py`**
+
+---
+
+## 🛠️ 5. 特殊技巧
+
+### (1) 动态控制子模块加载
+```python
+# core/config/__init__.py
+import os
+
+if os.getenv("USE_LOCAL_LLM"):
+    from .local_llm_config import LlmConfig
+else:
+    from .cloud_llm_config import LlmConfig
+```
+
+### (2) 版本信息集中管理
+```python
+# core/__init__.py
+__version__ = "1.0.0"
+__author__ = "Your Name"
+```
+
+用户可访问：
+```python
+import core
+print(core.__version__)
+```
+
+---
+
+## ✅ 总结：`__init__.py` 的核心要点
+
+| 功能 | 说明 |
+|------|------|
+| **包标识** | 让 Python 把目录当作包（必需） |
+| **简化导入** | 通过 `from .xxx import Y` 暴露接口 |
+| **初始化** | 执行包级 setup（慎用） |
+| **兼容性** | 确保在所有 Python 版本正常工作 |
+
+> 📌 **记住**：  
+> **每个你想 `import` 的目录，都必须有 `__init__.py`** —— 这是 Python 包系统的基石。
+
+如果你正在构建像 PC Agent 这样的多模块应用，合理使用 `__init__.py` 能让你的代码结构更清晰、导入更优雅。
