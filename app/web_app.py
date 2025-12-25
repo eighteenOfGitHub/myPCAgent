@@ -87,4 +87,4 @@ with gr.Blocks(title="PC Agent Client (Integrated)") as demo:
 
 # 导出 Gradio 应用实例，以便在 main.py 中挂载
 # Gradio 的 Blocks 对象可以直接作为 ASGI 应用使用
-web_app = demo
+gradio_app = demo
