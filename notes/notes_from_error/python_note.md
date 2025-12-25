@@ -453,3 +453,6 @@ print(core.__version__)
 > **每个你想 `import` 的目录，都必须有 `__init__.py`** —— 这是 Python 包系统的基石。
 
 如果你正在构建像 PC Agent 这样的多模块应用，合理使用 `__init__.py` 能让你的代码结构更清晰、导入更优雅。
+
+# 四、python shutdown 为什么logger会被先释放，导致释放数据库时，日志为空（ atexit.register(app_context.close)）
+
