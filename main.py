@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from services.api.routers import greetings
+from api.routers import greetings
 from app.web_app import gradio_app
 import uvicorn
 from core.config.env_config import EnvConfig
