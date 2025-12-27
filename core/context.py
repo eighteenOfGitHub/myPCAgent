@@ -32,8 +32,8 @@ class AppContext:
             raise RuntimeError("AppContext is a singleton. Use AppContext.get_instance().")
 
         # --- 核心组件实例 ---
-        self.env_config: Optional['EnvConfig'] = None
         self.logger: Optional['logging.Logger'] = None
+        self.env_config: Optional['EnvConfig'] = None
         self.db: Optional['SQLiteDatabase'] = None
         self.llm_router: Optional['LLMAgentRouter'] = None
 
@@ -67,10 +67,11 @@ class AppContext:
 
     def initialize_components(
         self,
-        logger: 'logging.Logger',
         env_config: 'EnvConfig',
         llm_config: 'LlmConfig'
     ) -> None:
+        from core.logger import get_logger
+        self.logger = get_logger(__name__)
         """
         使用外部提供的 logger 和已加载的配置来初始化核心组件。
         这个方法应该在配置加载和 logger 设置之后调用。
@@ -83,10 +84,9 @@ class AppContext:
         if self._components_initialized:
             # 可以选择抛出异常或静默返回
             # raise RuntimeError("AppContext components are already initialized.")
-            logger.warning("AppContext components are already initialized. Skipping re-initialization.")
+            self.logger.warning("AppContext components are already initialized. Skipping re-initialization.")
             return
 
-        self.logger = logger
         self.env_config = env_config
         self.llm_config = llm_config
 
@@ -99,7 +99,7 @@ class AppContext:
                 db_path = getattr(self.env_config, 'database_path', 'data/app.db')
                 # 直接实例化 SQLiteDatabase，传入 logger
                 from core.database import SQLiteDatabase
-                self.db = SQLiteDatabase(db_path=db_path, logger=self.logger)
+                self.db = SQLiteDatabase(db_path=db_path)
                 self._db_initialized = True
                 self.logger.info(f"✅ Database initialized at '{db_path}'.")
             except Exception as e:
@@ -114,7 +114,7 @@ class AppContext:
             try:
                 # 实例化 LLMAgentRouter，传入 logger
                 from core.llm_router import LLMAgentRouter
-                self.llm_router = LLMAgentRouter(llm_config=self.llm_config, logger=self.logger)
+                self.llm_router = LLMAgentRouter(llm_config=self.llm_config)
                 self._llm_router_initialized = True
                 self.logger.info("✅ LLM Router initialized.")
             except Exception as e:
@@ -131,12 +131,6 @@ class AppContext:
 
     # --- Getter Methods for Components ---
     # 提供受控访问方式，明确组件可能未初始化
-
-    def get_logger(self) -> 'logging.Logger':
-        """获取 logger 实例。"""
-        if self.logger is None:
-            raise RuntimeError("Logger has not been initialized in AppContext.")
-        return self.logger
 
     def get_database(self) -> 'SQLiteDatabase':
         """获取数据库实例。"""

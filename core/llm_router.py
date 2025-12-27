@@ -4,12 +4,13 @@
 import os
 import time
 import asyncio
+import litellm
 from typing import List, Dict, Any, Optional, Union, AsyncGenerator
-import logging
 
+from core.logger import get_logger
 from core.config.llm_config import LlmPoolItem, RoutingConfig, LlmConfig
 
-import litellm
+
 
 
 class LLMAgentRouter:
@@ -24,7 +25,6 @@ class LLMAgentRouter:
     def __init__(
         self,
         llm_config: LlmConfig,
-        logger: logging.Logger
     ):
         """
         初始化 LLM 路由器。
@@ -34,7 +34,7 @@ class LLMAgentRouter:
         """
         self.llm_config = llm_config
         self.mode = llm_config.routing.default_mode
-        self.logger = logger
+        self.logger = get_logger(__name__)
         
         # --- 预处理：构建默认模型映射 ---
         self._default_model_map: Dict[str, LlmPoolItem] = {}

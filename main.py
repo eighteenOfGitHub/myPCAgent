@@ -92,16 +92,13 @@ def initialize_environment() -> logging.Logger:
         raise RuntimeError("Critical failure during environment initialization") from e
 
 
-def initialize_core_components(logger: logging.Logger) -> AppContext:
+def initialize_core_components() -> AppContext:
     """
     完成 core 模块的初始化与准备工作。
-
-    Args:
-        logger: 已经初始化的日志记录器。
-
     Returns:
         AppContext: 初始化完成的 AppContext 实例。
     """
+    logger = get_logger(__name__)
     logger.info("🔧 Starting core components initialization...")
     
     # 1. 获取 AppContext 单例
@@ -129,7 +126,6 @@ def initialize_core_components(logger: logging.Logger) -> AppContext:
     # 3. 将配置注入 AppContext 并完成核心部件初始化
     try:
         app_context.initialize_components(
-            logger=logger,
             env_config=env_config,
             llm_config=llm_config
             # 如果有其他配置，也需要传入
@@ -161,8 +157,9 @@ def create_app() -> FastAPI:
 def main():
     # 记录启动时间
     start_time = time.time()
-    logger = initialize_environment()
-    app_context = initialize_core_components(logger)
+    initialize_environment()
+    logger = get_logger(__name__)
+    app_context = initialize_core_components()
     end_time = time.time()
     logger.info("🎉 Environment and core components initialized in %.3f seconds.", end_time - start_time)
     logger.info("🚀 Starting Uvicorn server...")

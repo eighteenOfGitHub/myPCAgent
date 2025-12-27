@@ -112,6 +112,9 @@ def session_context(session_id: str) -> Generator[None, None, None]:
         # 确保即使在 with 块中发生异常也能清除 session_id
         clear_session_id()
 
+# 明确导出 session_context
+__all__ = ["get_logger", "session_context"]
+
 
 # --- 4. (可选/已注释) 自定义 Logger 类 ---
 # 如果你需要为所有 logger 添加特定的行为（例如，预定义某些字段），
