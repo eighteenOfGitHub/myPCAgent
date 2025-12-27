@@ -302,7 +302,7 @@ MySQL 的事务处理更复杂，因为它是一个多用户、并发的服务�
 
 # 三、存储引擎介绍
 
-# MySQL 存储引擎速览
+# 四、MySQL 存储引擎速览
 
 ## 1. 什么是存储引擎    
 
@@ -356,7 +356,7 @@ ALTER TABLE t ENGINE = InnoDB;
 > 临时数据用 `MEMORY`，冷日志用 `ARCHIVE`，复制跳板用 `BLACKHOLE`；  
 > 其余引擎**除非有专门需求，否则无需触碰**。
 
-# 四、连接管理模式介绍。应该是我启动app时连接，一直到退出应用时关闭；还是启动app后，具体到一个服务时，即保存，或读取时，再连接数据库？
+# 五、连接管理模式介绍。应该是我启动app时连接，一直到退出应用时关闭；还是启动app后，具体到一个服务时，即保存，或读取时，再连接数据库？
 
 这是一个非常经典的数据库连接管理模式问题，选择哪种方式取决于你的应用类型、规模和性能要求。
 
@@ -489,5 +489,114 @@ if __name__ == "__main__":
 
 选择“应用生命周期级连接”不仅能满足当前需求，也为未来可能的功能扩展（如引入连接池、更复杂的 ORM）打下了良好的基础。
 
+# 六、为什么在初始化时删除提前暴露数据库路径或权限问题的代码？
 
+你问得非常好！这段被删除的初始化代码**本身没有错**，它确实能提前暴露数据库路径或权限问题。但在我们**改为“每次操作新建连接”** 的线程安全模型后，这段代码就**不再必要，甚至会产生误导**。
 
+下面我详细解释为什么可以（并且应该）删除它：
+
+---
+
+## 🔍 原代码的作用（回顾）
+
+```python
+conn = sqlite3.connect(..., check_same_thread=False)
+cursor = conn.cursor()
+cursor.execute("SELECT 1")  # ← 主动触发文件创建/权限检查
+self.connection = conn      # ← 保存为实例变量
+```
+
+### ✅ 它的优点：
+- **提前失败（Fail Fast）**：启动时就知道数据库能不能用
+- **验证路径可写**：`SELECT 1` 会强制 SQLite 创建 `.db` 文件（如果不存在）
+- **暴露权限错误**：比如磁盘只读、目录不存在等
+
+---
+
+## 🚫 但在新架构下，它的问题更严重
+
+### ❌ 问题 1：**连接不再被复用**
+- 新设计中，`self.connection` **根本不会被使用**（所有操作都调 `_create_connection()`）
+- 所以这个连接在初始化后立即成为**僵尸资源**，直到对象销毁
+- 虽然 SQLite 连接轻量，但这是**无意义的开销**
+
+### ❌ 问题 2：**掩盖了真正的线程安全风险**
+- 你用了 `check_same_thread=False` 来“绕过”线程检查
+- 但这只是**压制错误，不是解决问题**
+- 实际上，跨线程使用 SQLite 连接仍可能导致：
+  - 数据库损坏（静默发生！）
+  - 随机 `OperationalError: database is locked`
+- 新方案通过**不共享连接**从根本上解决此问题
+
+### ❌ 问题 3：**目录可写性检查已由新逻辑覆盖**
+你在 `__init__` 中保留了这段关键代码：
+```python
+db_dir = Path(self.db_path).parent
+test_file = db_dir / ".write_test"
+test_file.touch()
+test_file.unlink()
+```
+✅ **这已经足够验证目录可写性**，且更直接、更安全。
+
+> 💡 `SELECT 1` 触发的文件创建，其实依赖于 SQLite 内部行为；而 `.touch()` 是显式、可控的测试。
+
+---
+
+## ✅ 新方案如何保证“提前失败”？
+
+虽然删除了 `SELECT 1`，但我们通过以下方式**保留甚至增强**了启动时的健壮性：
+
+| 检查项                    | 原方案                       | 新方案                          |
+| ------------------------- | ---------------------------- | ------------------------------- |
+| **目录是否存在**          | 依赖 SQLite 自动创建         | ✅ 显式 `mkdir(parents=True)`    |
+| **目录是否可写**          | 依赖 `SELECT 1` 触发写入     | ✅ 显式 `.touch()` + `.unlink()` |
+| **磁盘空间不足**          | 启动时不暴露，首次写入才报错 | 同左（无法避免，属运行时错误）  |
+| **路径是目录/设备文件等** | 启动时报错                   | ✅ `.touch()` 会立即报错         |
+
+> 📌 **结论**：`.touch()` 测试比 `SELECT 1` **更早、更明确、更可控**地暴露权限问题。
+
+---
+
+## 🛠 如果你仍希望“启动时验证数据库可用性”
+
+可以在 `AppContext.initialize_components()` 中加一个**主动测试**：
+
+```python
+# core/context.py
+def initialize_components(self, env_config, llm_config):
+    logger = get_logger(__name__)
+    
+    # 初始化 DB
+    self.db = SQLiteDatabase(db_path=env_config.db_path)
+    
+    # ← 新增：主动测试数据库是否可读写
+    try:
+        self.db.execute_non_query("CREATE TABLE IF NOT EXISTS _startup_test (id INTEGER)")
+        self.db.execute_non_query("DROP TABLE _startup_test")
+        logger.info("✅ Database read/write test passed.")
+    except Exception as e:
+        logger.critical("💥 Database connectivity test failed: %s", e)
+        raise
+```
+
+这样既：
+- 不污染 `SQLiteDatabase` 的设计
+- 又实现了“启动时验证”
+- 还使用了**真实的操作路径**（线程安全的 `execute_non_query`）
+
+---
+
+## ✅ 总结：为什么删除是正确的
+
+| 原因             | 说明                                            |
+| ---------------- | ----------------------------------------------- |
+| **连接不再使用** | 新架构每次操作新建连接，旧连接是僵尸            |
+| **线程安全优先** | `check_same_thread=False` 是危险的权宜之计      |
+| **已有更好替代** | `.touch()` 比 `SELECT 1` 更直接验证可写性       |
+| **职责分离**     | DB 类负责执行 SQL，启动验证应由 AppContext 负责 |
+
+> 💡 **软件设计原则**：不要为了“提前验证”而引入与主逻辑不一致的副作用。
+
+---
+
+如果你希望保留某种形式的“数据库连通性测试”，我建议采用上面提到的 **AppContext 层主动测试** 方案，而不是在 DB 构造函数里维护一个无用的连接。
