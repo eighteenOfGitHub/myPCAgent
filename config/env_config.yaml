@@ -3,4 +3,4 @@
 
 name: PCAgent
 version: 0.1.0
-debug: true  # 设为 true 启用调试模式（如控制台日志）
+debug: false  # 设为 true 启用调试模式（如控制台日志）
