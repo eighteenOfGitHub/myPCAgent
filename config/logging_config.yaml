@@ -11,7 +11,7 @@ formatters:
 
 filters:
   session_id_injector:
-    "()": "app.logging.session_context_filter.SessionIdInjectingFilter"
+    "()": "core.logging.filters.SessionIdInjectingFilter"
 
 handlers:
   console:
