@@ -1,102 +1,234 @@
 
-# 🌲Your PC Agent
 
-一个面向个人使用的本地智能 PC 自动化代理，基于 LLM 实现任务理解与执行，支持多模型调度、上下文感知和持久化记录。
-
-目前正在尝试构建属于自己的PC Agent，“哐哧哐哧”构建中  
-I'm currently building my own PC Agent with clangling and clanking  
+# Your Agent Project — 技术文档（v0.2.0）
 
 ---
 
-## ✨ 核心功能（v0.1.0）
+## 一、项目介绍
 
-- **双模 LLM 支持**：可同时接入在线模型（如 qwen-plus）和本地模型（如 Ollama 的 qwen2.5:7b）
-- **智能路由**：根据任务类型（通用 / 编码 / 工具调用）自动选择最优模型
-- **会话上下文管理**：自动注入 Session ID，支持跨请求上下文追踪
-- **持久化存储**：使用线程安全的 SQLite 记录对话日志与元数据
+**Your Agent Project** 是一个面向个人 PC 的本地 AI Agent 框架，旨在提供：
 
-## ▶️ 快速开始
+- **能力路由**：统一管理本地/远程的 LLM、Embedding、工具等**系统能力**，支持优先级调度与能力匹配；
+- **工具集成**：通过 MCP（Model Calling Protocol）标准接入外部工具（如搜索、代码执行、语音）；
+- **对话管理**：记录会话上下文，支持多轮交互与工具调用链；
+- **配置持久化**：所有**系统能力的元数据**（如模型名称、端点、状态等）存储于本地 SQLite 数据库；
+- **可观测性**：系统运行日志以 **结构化文本文件形式备份**，便于调试与审计；
+- **Web 管理界面**：基于 **Gradio** 提供交互式前端，支持能力配置管理、日志查看、实时聊天。
 
-### 1. 克隆项目
+---
+
+## 二、版本新增
+
+### v0.2.0
+
+ - 前后端分离
+
+---
+
+## 三、项目结构
+
+```
+your-agent-project/  
+│  
+├── main.py                      # 外层启动脚本：同时启动 backend 和 frontend  
+│  
+├── backend/                     # 后端服务（FastAPI）  
+│   ├── app.py                   # FastAPI 应用入口  
+│   ├── core/  
+│   │   ├── __init__.py          # from .version import __version__  
+│   │   ├── version.py           # 动态加载 __version__ = config.system.version  
+│   │   ├── agent.py             # Agent 主控 Orchestrator  
+│   │   ├── llm_router.py        # 大模型路由  
+│   │   ├── tool_executor.py     # MCP 工具执行器  
+│   │   ├── database.py          # 数据库初始化、连接管理  
+│   │   ├── bootstrap.py         # 启动引导  
+│   │   └── db_models/           # 数据模型目录（仅定义数据库表结构）  
+│   │       ├── __init__.py      # 导出所有 SQLModel 类    
+│   │       └── base.py          # MCPTool (SQLModel)  
+│   │  
+│   ├── api/   
+│   │   └── v1/  
+│   │       ├── agents.py        # /api/v1/chat  
+│   │       ├── capabilities.py  # /api/v1/capabilities (统一管理 LLM/Embedding 等)  
+│   │       ├── tools.py         # /api/v1/tools  
+│   │       └── logs.py          # /api/v1/logs（读取日志文件）  
+│   │  
+│   ├── config/  
+│   │   ├── env_config.yaml      # 核心配置文件  
+│   │   └── settings.py          # ConfigLoader 类  
+│   │  
+│   ├── data/  
+│   │   └── agent.db             # SQLite 主数据库（仅存能力/工具元数据）  
+│   │  
+│   ├── migrations/  
+│   │   ├── __init__.py  
+│   │   ├── v1_initial.py  
+│   │   └── v2_add_capability_type.py  
+│   │  
+│   ├── logs/                    # 后端日志文件   
+│   │   ├── runtime.log              
+│   │   └── debug.log              
+│   │  
+│   └── requirements.txt  
+│  
+├── frontend/                    # 前端（Gradio）  
+│   ├── app.py                   # Gradio 应用入口  
+│   ├── components/  
+│   │   ├── chat_interface.py  
+│   │   ├── tool_manager.py  
+│   │   └── log_viewer.py  
+│   └── requirements.txt   
+│  
+├── shared/                      # 前后端共享类型    
+│   └── v1/    
+│       └── schemas.py           # 由 SQLModel 自动生成的 Pydantic 模型    
+│    
+├── .gitignore    
+└── README.md    
+  
+```  
+
+## 四、技术选型与配置管理  
+
+| 类别 | 技术/库 | 版本/说明 | 选型理由 |
+|------|--------|----------|--------|
+| **核心语言** | Python | ≥ 3.10 | 生态丰富，AI 工具链成熟，开发效率高 |
+| **后端框架** | FastAPI | 最新稳定版 | ✅ 高性能（Starlette + Pydantic）<br>✅ 自动生成 OpenAPI 文档<br>✅ 异步原生支持（适合 LLM 流式调用）<br>✅ 与 SQLModel 深度集成 |
+| **前端框架** | Gradio | ≥ 4.0 | ✅ 原生 `gr.ChatInterface` 支持流式聊天<br>✅ `gr.Dataframe` 提供强大表格交互（能力/工具管理）<br>✅ 快速构建 AI 交互界面<br>✅ 可独立部署，通过 HTTP 调用后端 API |
+| **数据库** | SQLite | 内置于 Python | ✅ 零配置、单文件、ACID<br>✅ 完美适配本地单机场景<br>✅ 仅存储**能力/工具元数据**（非日志、非模型）<br>❌ 不适用于高并发或多用户（但本项目无需） |
+| **ORM / 数据模型** | SQLModel | 最新稳定版 | ✅ **核心选择**：<br> - 统一 Pydantic + SQLAlchemy<br> - `SQLModel` 类 = 数据库表 = API Schema<br> - 自动序列化/反序列化，消除游标管理<br> - FastAPI 官方推荐<br>✅ 所有表结构定义于 `backend/core/db_models/` |
+| **日志系统** | Python `logging` + `RotatingFileHandler` | 标准库 | ✅ **仅使用文件备份**，不存数据库<br>✅ 分离 `runtime.log`（INFO+）与 `debug.log`（DEBUG+）<br>✅ 支持日志轮转（防磁盘爆满）<br>✅ 格式可配置，兼容 `grep`/`tail` 等工具 |
+| **配置管理** | PyYAML + 自定义 `ConfigLoader` | `pyyaml>=6.0` | ✅ 配置集中于 `config/env_config.yaml`<br>✅ 动态加载 `system.version`、路径、日志级别等<br>✅ 避免硬编码，支持环境差异化部署 |
+| **API 规范** | RESTful + JSON | — | ✅ `/api/v1/...` 路径清晰<br>✅ 请求/响应体由 SQLModel 自动生成 Pydantic 模型<br>✅ 兼容未来扩展（v2, v3...） |
+| **共享类型** | `shared/v1/schemas.py` | 由 SQLModel 导出 | ✅ 前后端共用同一套数据结构定义<br>✅ 避免类型不一致导致的 bug |
+| **版本控制** | 语义化版本（SemVer） | `vx.x.x` | ✅ `VERSION` 文件 + `env_config.yaml` 声明版本<br>✅ 数据库 Schema 版本独立管理（用于迁移） |
+| **代码风格** | Black + isort | — | ✅ 自动格式化，保证代码一致性（建议加入 CI） |
+| **可选：打包/分发** | PyInstaller / Docker | — | ✅ 未来可打包为单文件 EXE 或容器镜像 |
+
+## 五、程序启动
+
+以下是 **Your Agent Project v0.2.0 的完整程序启动流程说明**，包含文字描述与流程图（以 ASCII 形式呈现），清晰展示从用户执行命令到前后端就绪的全过程。
+
+
+### 1. 用户触发总启动器
 ```bash
-git clone https://github.com/eighteenOfGitHub/myPCAgent.git
-cd PCAgent
+python main.py
 ```
 
-### 2. 安装依赖
+### 2. 总启动程序（`main.py`）
+- 位于项目根目录；  
+- 负责**并行启动后端（FastAPI）和前端（Gradio）**；  
+- 使用 `subprocess` 创建两个独立子进程；  
+- 监听 `Ctrl+C` 信号，实现优雅关闭。  
+  
+### 3. 衍生出后端启动程序（`backend/main.py`）  
+ - 启动 backend/main.py  
+ - 立即调用 bootstrap.py 执行启动引导  
+ - 引导完成后，启动 FastAPI 应用，并监听默认地址 127.0.0.1:8000 上的HTTP请求  
 
-```bash
-pip install -r requirements.txt
+### 4. 启动引导程序（`backend/core/bootstrap.py`）  
+这是后端初始化的核心，按顺序执行：  
+1. **加载配置**：通过 `ConfigLoader` 读取 `config/env_config.yaml`；  
+2. **设置日志系统**：初始化 `runtime.log` 和（可选）`debug.log`；  
+3. **检查数据库**：  
+   - 若 `data/agent.db` 不存在 → 执行初始迁移（`migrations/v1_initial.py`）；  
+   - 若存在但 Schema 版本低于期望值 → 自动升级（如运行 `v2_add_capability_type.py`）；  
+4. **验证关键路径**：确保 `logs/`、`data/` 目录存在；  
+5. **完成引导**，FastAPI 正式就绪。  
+
+> ✅ **注意**：`bootstrap.py` 是 **同步阻塞执行** 的，确保服务在完全初始化后才接受请求。
+
+### 5. 衍生出前端启动程序（`frontend/app.py`）  
+- 启动 Gradio 应用；  
+- 默认监听 `127.0.0.1:7860`。
+
+---
+
+## 📊 启动流程图（ASCII）
+
+```text
++---------------------+
+|   User runs:        |
+|   python main.py    |
++----------+----------+
+           |
+           v
++----------+----------+
+|   main.py (Root)    |
+|  ┌───────────────┐  |
+|  │ Start Backend │──┼───▶ backend/main.py
+|  └───────────────┘  |
+|  ┌───────────────┐  |
+|  │ Start Frontend│──┼───▶ frontend/app.py
+|  └───────────────┘  |
++----------+----------+
+           |
+           | (Graceful shutdown on Ctrl+C)
+           ▼
+     [Both processes terminate]
 ```
 
-### 3. 配置模型与行为
-#### 最简 `llm_config.yaml` 示例：
-```yaml
-# config/llm_config.yaml
-# 千问系列模型：https://help.aliyun.com/zh/model-studio/models
-# 查看LiteLLM支持的提供商和模型：https://docs.litellm.ai/docs/providers
+### 后端内部引导流程（`backend/main.py` → `bootstrap.py`）
 
-llm_pool:
-  - name: "gpt-oss:120b-cloud-by-ollama"
-    model: "ollama/gpt-oss:120b-cloud"
-    type: "online"
-    tags: ["general", "chat"]
-    enabled: true
-    api_base: "http://localhost:11434"
-    api_key_env: null
-    priority: 10
-	
-	...
-
-  # - name: "gpt-4o-mini-route"         # (str) 在配置和日志中引用此模型的唯一标识
-  #   model: "gpt-4o-mini"              # (str) 传递给 litellm 的实际模型名称
-  #   type: "online"                    # (str) 模型部署类型，可选项: "local"(本地), "online"(远程API)
-  #   tags: ["route"]                   # (List[str]) 标签，常见可选项: "general"(通用), "chat"(聊天), "coding"(代码),  "reasoning"(推理),
-                                                                      #"route"(路由), "tts"(文本转语音), "asr"(自动语音识别)
-  #   enabled: true                     # (bool) 启用状态，设为 true 表示此模型可用
-  #   api_base: null                    # (Optional[str]) API 基础地址，null 表示使用 litellm 预设的默认地址
-  #   api_key_env: "OPENAI_API_KEY"     # (str) API 密钥环境变量名，从该变量读取密钥
-  #   priority: 15                      # (int) 调用优先级，数值越小优先级越高 (15 表示相对较低)
-
-routing:
-  default_mode: "online" # 可以是 online 或 local
-  selection_strategy: "priority" # 当前仅支持 priority
-  retry_on_failure: true
-  max_total_attempts: 3 # 包括 litellm 内部重试
-
-# --- 更新 defaults.mapping 以包含新的任务类型 ---
-defaults:
-  mapping:
-    general:
-      online: "qwen-plus-online"
-      local: "qwen3:8b-local"
-    # ...
+```text
+backend/app.py
+       │
+       ▼
+Load ConfigLoader from settings.py
+       │
+       ▼
+Call bootstrap.initialize()
+       │
+       ├──▶ Load env_config.yaml
+       │
+       ├──▶ Setup logging:
+       │      ├── runtime.log (INFO+)
+       │      └── debug.log (DEBUG+, if enabled)
+       │
+       ├──▶ Ensure data/ and logs/ exist
+       │
+       └──▶ Database bootstrap:
+              ├── Check agent.db exists?
+              │     ├── No → Run v1_initial migration
+              │     └── Yes → Check schema version
+              │            ├── Match → OK
+              │            └── Lower → Run pending migrations
+              │
+              ▼
+       FastAPI server starts on http://127.0.0.1:8000
 ```
 
-> 💡 请确保设置环境变量（如 `DASHSCOPE_API_KEY`）或本地模型已运行（如 `ollama serve`）。
+### 前端启动流程（`frontend/app.py`）
 
-### 4. 启动服务
-```bash
-python -m pcagent.main
+```text
+frontend/app.py
+       │
+       ▼
+Initialize Gradio Blocks with Tabs:
+       ├── 💬 Chat       → calls /api/v1/chat
+       ├── 🧠 Capabilities → calls /api/v1/capabilities
+       ├── 🛠️ Tools      → calls /api/v1/tools
+       └── 📜 Logs       → calls /api/v1/logs
+       │
+       ▼
+Launch Gradio on http://127.0.0.1:7860
+       │
+       ▼
+Open browser (or print URL)
 ```
-访问：
-- Web UI：http://localhost:8000/
 
-## 🛠️ 项目结构亮点
+---
 
-- **模块化设计**：`agents/`、`core/`、`services/` 分层清晰
-- **配置驱动**：Pydantic 模型校验，避免无效配置
-- **安全数据库**：`DatabaseManager` 封装连接池与事务
-- **可扩展路由**：`LLMAgentRouter` 支持策略插拔
-- ...
+## 🔁 进程关系总结
 
-## 📅 下一步计划（v0.2.0+）
+| 进程 | 启动方式 | 依赖 | 通信方式 |
+|------|--------|------|--------|
+| **`main.py`** | 用户直接运行 | 无 | 父进程，管理子进程生命周期 |
+| **`backend/app.py`** | `main.py` 通过 `subprocess` 启动 | `env_config.yaml`, `agent.db` | 提供 HTTP API（`/api/v1/...`） |
+| **`frontend/app.py`** | `main.py` 通过 `subprocess` 启动 | 后端 API 可用性 | 通过 HTTP 调用后端接口 |
 
-- 支持自定义工具函数（如文件操作、系统命令）
-- 实现对话窗口与历史聊天记录
-- 实现可插拔MCP服务
-- 完善可视化界面
 
-## 📜 License
 
-MIT © eighteen
+
+
+
