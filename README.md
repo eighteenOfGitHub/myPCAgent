@@ -8,10 +8,10 @@
 
 **Your Agent Project** 是一个面向个人 PC 的本地 AI Agent 框架，旨在提供：
 
-- **能力路由**：统一管理本地/远程的 LLM、Embedding、工具等**系统能力**，支持优先级调度与能力匹配；
+- **能力路由**：统一管理本地/远程的 LLM、Embedding、工具等 **系统能力**，支持优先级调度与能力匹配；
 - **工具集成**：通过 MCP（Model Calling Protocol）标准接入外部工具（如搜索、代码执行、语音）；
 - **对话管理**：记录会话上下文，支持多轮交互与工具调用链；
-- **配置持久化**：所有**系统能力的元数据**（如模型名称、端点、状态等）存储于本地 SQLite 数据库；
+- **配置持久化**：所有 **系统能力的元数据**（如模型名称、端点、状态等）存储于本地 SQLite 数据库；
 - **可观测性**：系统运行日志以 **结构化文本文件形式备份**，便于调试与审计；
 - **Web 管理界面**：基于 **Gradio** 提供交互式前端，支持能力配置管理、日志查看、实时聊天。
 
@@ -33,7 +33,7 @@ your-agent-project/
 ├── main.py                      # 外层启动脚本：同时启动 backend 和 frontend  
 │  
 ├── backend/                     # 后端服务（FastAPI）  
-│   ├── app.py                   # FastAPI 应用入口  
+│   ├── main.py                   # FastAPI 应用入口  
 │   ├── core/  
 │   │   ├── __init__.py          # from .version import __version__  
 │   │   ├── version.py           # 动态加载 __version__ = config.system.version  
@@ -86,7 +86,7 @@ your-agent-project/
 ├── .gitignore    
 └── README.md    
   
-```  
+```
 
 ## 四、技术选型与配置管理  
 
@@ -95,7 +95,7 @@ your-agent-project/
 | **核心语言** | Python | ≥ 3.10 | 生态丰富，AI 工具链成熟，开发效率高 |
 | **后端框架** | FastAPI | 最新稳定版 | ✅ 高性能（Starlette + Pydantic）<br>✅ 自动生成 OpenAPI 文档<br>✅ 异步原生支持（适合 LLM 流式调用）<br>✅ 与 SQLModel 深度集成 |
 | **前端框架** | Gradio | ≥ 4.0 | ✅ 原生 `gr.ChatInterface` 支持流式聊天<br>✅ `gr.Dataframe` 提供强大表格交互（能力/工具管理）<br>✅ 快速构建 AI 交互界面<br>✅ 可独立部署，通过 HTTP 调用后端 API |
-| **数据库** | SQLite | 内置于 Python | ✅ 零配置、单文件、ACID<br>✅ 完美适配本地单机场景<br>✅ 仅存储**能力/工具元数据**（非日志、非模型）<br>❌ 不适用于高并发或多用户（但本项目无需） |
+| **数据库** | SQLite | 内置于 Python | ✅ 零配置、单文件、ACID<br>✅ 完美适配本地单机场景<br>✅ 仅存储 **能力/工具元数据**（非日志、非模型）<br>❌ 不适用于高并发或多用户（但本项目无需） |
 | **ORM / 数据模型** | SQLModel | 最新稳定版 | ✅ **核心选择**：<br> - 统一 Pydantic + SQLAlchemy<br> - `SQLModel` 类 = 数据库表 = API Schema<br> - 自动序列化/反序列化，消除游标管理<br> - FastAPI 官方推荐<br>✅ 所有表结构定义于 `backend/core/db_models/` |
 | **日志系统** | Python `logging` + `RotatingFileHandler` | 标准库 | ✅ **仅使用文件备份**，不存数据库<br>✅ 分离 `runtime.log`（INFO+）与 `debug.log`（DEBUG+）<br>✅ 支持日志轮转（防磁盘爆满）<br>✅ 格式可配置，兼容 `grep`/`tail` 等工具 |
 | **配置管理** | PyYAML + 自定义 `ConfigLoader` | `pyyaml>=6.0` | ✅ 配置集中于 `config/env_config.yaml`<br>✅ 动态加载 `system.version`、路径、日志级别等<br>✅ 避免硬编码，支持环境差异化部署 |
@@ -117,14 +117,14 @@ python main.py
 
 ### 2. 总启动程序（`main.py`）
 - 位于项目根目录；  
-- 负责**并行启动后端（FastAPI）和前端（Gradio）**；  
+- 负责 **并行启动后端（FastAPI）和前端（Gradio）**；  
 - 使用 `subprocess` 创建两个独立子进程；  
 - 监听 `Ctrl+C` 信号，实现优雅关闭。  
   
 ### 3. 衍生出后端启动程序（`backend/main.py`）  
  - 启动 backend/main.py  
  - 立即调用 bootstrap.py 执行启动引导  
- - 引导完成后，启动 FastAPI 应用，并监听默认地址 127.0.0.1:8000 上的HTTP请求  
+ - 引导完成后，启动 FastAPI 应用，并监听默认地址 127.0.0.1:8000 上的 HTTP 请求  
 
 ### 4. 启动引导程序（`backend/core/bootstrap.py`）  
 这是后端初始化的核心，按顺序执行：  
@@ -144,7 +144,7 @@ python main.py
 
 ---
 
-## 📊 启动流程图（ASCII）
+### 📊 启动流程图（ASCII）
 
 ```text
 +---------------------+
@@ -219,16 +219,17 @@ Open browser (or print URL)
 
 ---
 
-## 🔁 进程关系总结
+### 🔁 进程关系总结
 
 | 进程 | 启动方式 | 依赖 | 通信方式 |
 |------|--------|------|--------|
 | **`main.py`** | 用户直接运行 | 无 | 父进程，管理子进程生命周期 |
-| **`backend/app.py`** | `main.py` 通过 `subprocess` 启动 | `env_config.yaml`, `agent.db` | 提供 HTTP API（`/api/v1/...`） |
+| **`backend/main.py`** | `main.py` 通过 `subprocess` 启动 | `env_config.yaml` | 提供 HTTP API（`/api/v1/...`） |
 | **`frontend/app.py`** | `main.py` 通过 `subprocess` 启动 | 后端 API 可用性 | 通过 HTTP 调用后端接口 |
 
+## 六、启动方式 
 
-
+> 双击运行 `start_project.bat`，或者在命令行/PowerShell 中执行 `.\start_project.bat`  
 
 
 
