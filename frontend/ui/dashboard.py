@@ -8,11 +8,11 @@ def create_gradio_interface():
         chat_history = gr.State([])
 
         with gr.Row():
-            with gr.Column(scale=1):
+            with gr.Column(scale=1, min_width=150):
                 # 左侧栏
                 gr.Markdown("## 控制面板")
                 hello_btn = gr.Button("Say Hello to Backend") # 添加按钮
-            with gr.Column(scale=4):
+            with gr.Column(scale=7):
                 # 右侧栏
                 gr.Markdown("## 聊天")
                 chatbot = gr.Chatbot(

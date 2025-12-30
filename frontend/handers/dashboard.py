@@ -12,7 +12,6 @@ def handle_hello_request():
         data = response.json()
         # 假设 GreetingResponse 模型是 {"message": "..."}
         backend_message = data.get("message", "未收到后端消息")
-        print(f"[DEBUG] 后端返回数据: {data}, 提取消息: {backend_message}")
         return ("发送 Hello 请求", backend_message)
 
     except Exception as e:
