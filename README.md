@@ -19,9 +19,12 @@
 
 ## 二、版本新增
 
-### v0.2.0
+### v0.2.1 
+ - feat:      启动项与热重载  
+ - fix:       chatbox 历史聊天记录不显示
 
- - 前后端分离
+### v0.2.0
+ - build:     前后端分离
 
 ---
 
@@ -236,7 +239,7 @@ Open browser (or print URL)
 
 ## 六、启动方式 
 
-> 双击运行 `start_project.bat`，或者在命令行/PowerShell 中执行 `.\start_project.bat`  
+> 双击运行 `start.bat`，或者在命令行/PowerShell 中执行 `.\start.bat`  
 
 
 
