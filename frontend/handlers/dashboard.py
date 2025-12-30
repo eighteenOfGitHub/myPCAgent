@@ -1,4 +1,4 @@
-# frontend/handers/dashboard.py
+# frontend/handlers/dashboard.py
 import requests
 from config.env_config import env_config
 

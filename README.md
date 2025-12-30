@@ -28,63 +28,70 @@
 ## 三、项目结构
 
 ```
-your-agent-project/  
-│  
-├── main.py                      # 外层启动脚本：同时启动 backend 和 frontend  
-│  
-├── backend/                     # 后端服务（FastAPI）  
-│   ├── main.py                   # FastAPI 应用入口  
-│   ├── core/  
-│   │   ├── __init__.py          # from .version import __version__  
-│   │   ├── version.py           # 动态加载 __version__ = config.system.version  
-│   │   ├── agent.py             # Agent 主控 Orchestrator  
-│   │   ├── llm_router.py        # 大模型路由  
-│   │   ├── tool_executor.py     # MCP 工具执行器  
-│   │   ├── database.py          # 数据库初始化、连接管理  
-│   │   ├── bootstrap.py         # 启动引导  
-│   │   └── db_models/           # 数据模型目录（仅定义数据库表结构）  
-│   │       ├── __init__.py      # 导出所有 SQLModel 类    
-│   │       └── base.py          # MCPTool (SQLModel)  
+myPCAgent/
+│
+├── .gitignore
+├── README.md
+├── start.bat
+├── clear_cache.py
+├── tree.txt
+│
+├── backend/                     # FastAPI 后端服务
+│   ├── __init__.py
+│   ├── main.py                  # 应用入口
+│   │
+│   ├── api/
+│   │   └── v1/
+│   │       ├── __init__.py
+│   │       ├── router.py        # API 路由聚合
+│   │       └── endpoints/
+│   │           ├── __init__.py
+│   │           └── greeting.py  # 具体接口实现
+│   │
+│   ├── config/
+│   │   ├── __init__.py
+│   │   ├── back_config.py       # 配置加载逻辑
+│   │   └── back_config.yaml     # 后端配置文件
+│   │
+│   ├── core/                    # 核心业务逻辑
+│   │   ├── __init__.py
+│   │   ├── bootstrap.py         # 应用初始化
+│   │   ├── database.py          # 数据库连接
+│   │   │
+│   │   ├── services/            # 业务服务层
+│   │   │   ├── __init__.py
+│   │   │   └── greeting_service.py
+│   │   │
+│   │   └── tools/               # 工具函数（可后续扩展）
+│   │       └── __init__.py
+│   │
+│   ├── db_models/               # 数据库模型（SQLAlchemy / Pydantic）
+│   │   └── __init__.py
+│   │
+│   ├── data/                    # 静态数据或种子数据（可选）
+│   ├── logs/                    # 日志输出目录（运行时生成）
+│   └── migrations/              # 数据库迁移脚本（如 Alembic）
+│       └── __init__.py
+│
+├── config/                      # 全局共享配置
+│   ├── __init__.py
+│   ├── env_config.py            # 环境配置加载
+│   └── env_config.yaml          # 全局环境变量定义
+│
+├── frontend/                    # Gradio 前端应用
+│   ├── __init__.py
+│   ├── app.py                   # 前端主入口
 │   │  
-│   ├── api/   
-│   │   └── v1/  
-│   │       ├── agents.py        # /api/v1/chat  
-│   │       ├── capabilities.py  # /api/v1/capabilities (统一管理 LLM/Embedding 等)  
-│   │       ├── tools.py         # /api/v1/tools  
-│   │       └── logs.py          # /api/v1/logs（读取日志文件）  
-│   │  
-│   ├── config/  
-│   │   ├── env_config.yaml      # 核心配置文件  
-│   │   └── settings.py          # ConfigLoader 类  
-│   │  
-│   ├── data/  
-│   │   └── agent.db             # SQLite 主数据库（仅存能力/工具元数据）  
-│   │  
-│   ├── migrations/  
-│   │   ├── __init__.py  
-│   │   ├── v1_initial.py  
-│   │   └── v2_add_capability_type.py  
-│   │  
-│   ├── logs/                    # 后端日志文件   
-│   │   ├── runtime.log              
-│   │   └── debug.log              
-│   │  
-│   └── requirements.txt  
-│  
-├── frontend/                    # 前端（Gradio）  
-│   ├── app.py                   # Gradio 应用入口  
-│   ├── components/  
-│   │   ├── chat_interface.py  
-│   │   ├── tool_manager.py  
-│   │   └── log_viewer.py  
-│   └── requirements.txt   
-│  
-├── shared/                      # 前后端共享类型    
-│   └── v1/    
-│       └── schemas.py           # 由 SQLModel 自动生成的 Pydantic 模型    
-│    
-├── .gitignore    
-└── README.md    
+│   ├── handlers/   
+│   │   └── dashboard.py         # 前端事件处理逻辑
+│   │
+│   └── ui/                      # UI 组件定义
+│       └── dashboard.py         # Gradio 界面布局
+│
+└── shared/                      # 前后端共享代码（纯 Python，无框架依赖）
+    └── v1/
+        ├── __init__.py
+        └── schemas.py           # Pydantic 模型（如请求/响应结构）
   
 ```
 

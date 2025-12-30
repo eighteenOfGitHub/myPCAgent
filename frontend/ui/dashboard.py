@@ -1,6 +1,6 @@
 # frontend/ui/dashboard.py
 import gradio as gr
-from frontend.handers.dashboard import update_chat_with_hello
+from frontend.handlers.dashboard import update_chat_with_hello
 
 def create_gradio_interface():
     with gr.Blocks(title="LangGraph Dashboard") as demo:
