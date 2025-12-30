@@ -16,8 +16,6 @@ def create_gradio_interface():
                 # 右侧栏
                 gr.Markdown("## 聊天")
                 chatbot = gr.Chatbot(
-                    label="对话历史",
-                    # bubble_full_width=False,  # 已弃用，移除此行
                     height=500,
                     elem_id="chat_display"
                 )
