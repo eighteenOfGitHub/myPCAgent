@@ -45,6 +45,9 @@ if __name__ == "__main__":
         "backend.main:app",
         host=back_config.BACKEND_HOST,
         port=back_config.BACKEND_PORT,
-        reload=back_config.BACKEND_RELOAD
+        reload=back_config.BACKEND_RELOAD,
+        reload_dirs=[".", "../config", "../shared"]
     )
+
+
     
