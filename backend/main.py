@@ -8,7 +8,7 @@ FastAPI 应用的主入口点。
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.v1.router import router
+from backend.api.router import router
 from backend.config.back_config import back_config
 
 # --- FastAPI 应用实例 ---
@@ -26,7 +26,7 @@ app.add_middleware(
 
 # --- 包含 API 路由 ---
 # 将定义在 api_router 中的所有路由注册到 app
-app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix="/api")
 
 # --- 根路径健康检查 ---
 @app.get("/")

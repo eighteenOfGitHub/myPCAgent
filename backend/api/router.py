@@ -7,8 +7,8 @@ API 路由聚合器。
 """
 from fastapi import APIRouter
 
-from backend.api.v1.endpoints import greeting
+from backend.api.endpoints import greeting
 
-router = APIRouter(tags=["v1"])
+router = APIRouter()
 
 router.include_router(greeting.router)

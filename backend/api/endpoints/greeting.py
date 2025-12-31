@@ -7,7 +7,7 @@ backend/api/v1/endpoints/greeting.py
 """
 from fastapi import APIRouter, HTTPException
 from backend.core.services.greeting_service import generate_greeting
-from shared.v1.schemas import GreetingResponse
+from shared.schemas import GreetingResponse
 
 # 创建此模块专用的路由器
 router = APIRouter(prefix="/greeting", tags=["Greeting"])

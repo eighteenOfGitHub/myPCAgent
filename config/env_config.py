@@ -24,10 +24,6 @@ class EnvConfig(BaseModel):
         description="运行环境: development, production",
         pattern=r"^(development|production)$" # 使用 pattern 验证字段值
     )
-    API_VERSION: str = Field(
-        default="v1",
-        description="API 版本号"
-    )
     # --- 服务器配置 (共享) ---
     BACKEND_HOST: str = Field(
         default="127.0.0.1",
@@ -47,7 +43,7 @@ class EnvConfig(BaseModel):
     )
         # --- API 相关 ---
     API_BASE_URL: str = Field(
-        default=f"http://localhost:{BACKEND_PORT}/api/{API_VERSION}",
+        default=f"http://localhost:{BACKEND_PORT}/api",
         description="后端 API 的基础 URL，前端用于请求后端服务"
     )
     # CORS 源，后端会用这个配置 CORS 中间件，前端也可以用它来校验请求目标
