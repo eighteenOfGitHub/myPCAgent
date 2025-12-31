@@ -34,67 +34,62 @@
 myPCAgent/
 │
 ├── .gitignore
+├── clear_cache.py
 ├── README.md
 ├── start.bat
-├── clear_cache.py
 ├── tree.txt
 │
-├── backend/                     # FastAPI 后端服务
-│   ├── __init__.py
-│   ├── main.py                  # 应用入口
+├── backend/
+│   ├── main.py
 │   │
 │   ├── api/
-│   │   └── v1/
-│   │       ├── __init__.py
-│   │       ├── router.py        # API 路由聚合
-│   │       └── endpoints/
-│   │           ├── __init__.py
-│   │           └── greeting.py  # 具体接口实现
-│   │
-│   ├── config/
+│   │   ├── router.py
 │   │   ├── __init__.py
-│   │   ├── back_config.py       # 配置加载逻辑
-│   │   └── back_config.yaml     # 后端配置文件
-│   │
-│   ├── core/                    # 核心业务逻辑
-│   │   ├── __init__.py
-│   │   ├── bootstrap.py         # 应用初始化
-│   │   ├── database.py          # 数据库连接
-│   │   │
-│   │   ├── services/            # 业务服务层
-│   │   │   ├── __init__.py
-│   │   │   └── greeting_service.py
-│   │   │
-│   │   └── tools/               # 工具函数（可后续扩展）
+│   │   └── endpoints/
+│   │       ├── greeting.py
 │   │       └── __init__.py
 │   │
-│   ├── db_models/               # 数据库模型（SQLAlchemy / Pydantic）
+│   ├── config/
+│   │   ├── back_config.py
+│   │   ├── back_config.yaml
 │   │   └── __init__.py
 │   │
-│   ├── data/                    # 静态数据或种子数据（可选）
-│   ├── logs/                    # 日志输出目录（运行时生成）
-│   └── migrations/              # 数据库迁移脚本（如 Alembic）
+│   ├── core/
+│   │   ├── bootstrap.py
+│   │   ├── database.py
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── services/
+│   │   │   ├── greeting_service.py
+│   │   │   └── __init__.py
+│   │   │
+│   │   └── tools/
+│   │
+│   ├── data/
+│   ├── db_models/
+│   │   └── __init__.py
+│   ├── logs/
+│   └── migrations/
 │       └── __init__.py
 │
-├── config/                      # 全局共享配置
-│   ├── __init__.py
-│   ├── env_config.py            # 环境配置加载
-│   └── env_config.yaml          # 全局环境变量定义
+├── config/
+│   ├── env_config.py
+│   ├── env_config.yaml
+│   └── __init__.py
 │
-├── frontend/                    # Gradio 前端应用
-│   ├── __init__.py
-│   ├── app.py                   # 前端主入口
-│   │  
-│   ├── handlers/   
-│   │   └── dashboard.py         # 前端事件处理逻辑
+├── frontend/
+│   ├── app.py
 │   │
-│   └── ui/                      # UI 组件定义
-│       └── dashboard.py         # Gradio 界面布局
+│   ├── handlers/
+│   │   └── dashboard.py
+│   │
+│   └── ui/
+│       └── dashboard.py
 │
-└── shared/                      # 前后端共享代码（纯 Python，无框架依赖）
-    └── v1/
-        ├── __init__.py
-        └── schemas.py           # Pydantic 模型（如请求/响应结构）
+└── shared/
+    ├── schemas.py
+    └── models/
+        └── chat_models.py
   
 ```
 
