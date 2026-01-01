@@ -6,7 +6,7 @@ backend/api/v1/endpoints/greeting.py
 此模块定义与问候相关的 FastAPI 路由，并调用核心服务层的函数。
 """
 from fastapi import APIRouter, HTTPException
-from backend.core.services.greeting_service import generate_greeting
+from backend.services.greeting_service import generate_greeting
 from shared.schemas import GreetingResponse
 
 # 创建此模块专用的路由器

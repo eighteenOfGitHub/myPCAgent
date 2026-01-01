@@ -3,16 +3,18 @@
 import os
 from typing import List, Optional, Generator
 from datetime import datetime
+from sqlalchemy import desc
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 # from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 
-from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
 from shared.schemas import ChatTurnResponse
+from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
+from backend.services.llm_setting_service import LLMSettingService 
 from backend.core.database import get_session
-from sqlalchemy import desc
+
 
 
 class ChatService:
@@ -75,15 +77,28 @@ class ChatService:
             .all()
         )
 
-    def _save_message(self, session_id: int, role: str, content: str) -> ChatMessage:
-        message = ChatMessage(session_id=session_id, role=role, content=content)
+    def _save_message(
+        self,
+        session_id: int,
+        role: str,
+        content: str,
+        llm_provider: str,
+        llm_model_name: str,
+    ) -> ChatMessage:
+        message = ChatMessage(
+            session_id=session_id,
+            role=role,
+            content=content,
+            llm_provider=llm_provider,
+            llm_model_name=llm_model_name,
+        )
         self._session.add(message)
         self._session.commit()
         self._session.refresh(message)
         return message
 
-    def _build_history(self, session_id: int, current_user_msg: str) -> list:
-        """构建 LangChain 消息历史（含当前用户消息）"""
+    def _build_history(self, session_id: int) -> list:
+        """从数据库构建完整消息历史（LangChain 格式）"""
         history = []
         messages = self.get_session_messages(session_id)
         for msg in messages:
@@ -91,7 +106,6 @@ class ChatService:
                 history.append(HumanMessage(content=msg.content))
             elif msg.role == "assistant":
                 history.append(AIMessage(content=msg.content))
-        history.append(HumanMessage(content=current_user_msg))
         return history
 
     # ======================
@@ -101,20 +115,36 @@ class ChatService:
         session = self.get_session(session_id)
         if not session:
             raise ValueError(f"会话 ID {session_id} 不存在")
-        config = session.config
-        if not config:
-            raise RuntimeError(f"会话 {session_id} 关联的 LLM 配置丢失")
+        
+        config = LLMSettingService().get_active()  # ← 直接获取全局配置
+        
+        # 1. 先保存用户消息（带快照）
+        user_msg = self._save_message(
+            session_id=session_id,
+            role="user",
+            content=user_message,
+            llm_provider=config.provider,
+            llm_model_name=config.model_name,
+        )
 
-        history = self._build_history(session_id, user_message)
+        # 2. 构建完整历史（含刚保存的用户消息）
+        history = self._build_history(session_id)  # ← 注意：不再传 current_user_msg
+
+        # 3. 调用 LLM
         llm = self._get_llm_client(config)
         response = llm.invoke(history)
         assistant_reply = response.content
 
-        # 保存消息
-        self._save_message(session_id, "user", user_message)
-        assistant_msg = self._save_message(session_id, "assistant", assistant_reply)
+        # 4. 保存 AI 回复（带相同快照）
+        assistant_msg = self._save_message(
+            session_id=session_id,
+            role="assistant",
+            content=assistant_reply,
+            llm_provider=config.provider,
+            llm_model_name=config.model_name,
+        )
 
-        # 更新会话时间
+        # 5. 更新会话时间
         session.updated_at = datetime.utcnow()
         self._session.add(session)
         self._session.commit()

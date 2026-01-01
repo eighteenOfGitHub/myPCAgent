@@ -1,5 +1,5 @@
 """
-shared//schemas.py
+shared/schemas.py
 
 共享的 Pydantic 模型。
 
@@ -78,3 +78,4 @@ class ChatTurnResponse(BaseModel):
     user_message: str
     assistant_reply: str
     message_id: int
+

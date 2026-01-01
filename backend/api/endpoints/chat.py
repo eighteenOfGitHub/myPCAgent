@@ -14,7 +14,7 @@ from shared.schemas import (
     ChatTurnRequest,
     ChatTurnResponse,
 )
-from backend.core.services.chat_service import ChatService
+from backend.services.chat_service import ChatService
 
 
 router = APIRouter(prefix="/chat", tags=["Chat"])

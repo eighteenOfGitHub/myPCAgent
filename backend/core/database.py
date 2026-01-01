@@ -5,7 +5,7 @@ from sqlalchemy.engine import Engine
 import os
 from pathlib import Path
 
-from ..config.back_config import back_config
+from ..core.config.back_config import back_config
 
 # ----------------------------
 # 数据库配置
@@ -37,7 +37,10 @@ def init_db():
     在应用启动时调用一次。
     """
     # 导入所有模型（触发 SQLModel 元类注册）
-    from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
+    from backend.db_models.chat_models import ChatSession, ChatMessage
+    from backend.db_models.user_config import  LLMConfig, UserPreference
+
+    # print("✅ Registered tables:", list(SQLModel.metadata.tables.keys()))
 
     SQLModel.metadata.create_all(engine)
 

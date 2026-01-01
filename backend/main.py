@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.router import router
-from backend.config.back_config import back_config
+from backend.core.config.back_config import back_config
 from backend.core.database import init_db
 
 try:
