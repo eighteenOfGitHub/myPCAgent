@@ -6,12 +6,13 @@ from datetime import datetime
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
+# from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 
 from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
 from shared.schemas import ChatTurnResponse
 from backend.core.database import get_session
+from sqlalchemy import desc
 
 
 class ChatService:
@@ -37,12 +38,12 @@ class ChatService:
                 base_url=config.base_url,
                 temperature=0.7,
             )
-        elif provider == "anthropic":
-            return ChatAnthropic(
-                model=config.model_name,
-                api_key=api_key,
-                temperature=0.7,
-            )
+        # elif provider == "anthropic":
+        #     return ChatAnthropic(
+        #         model=config.model_name,
+        #         api_key=api_key,
+        #         temperature=0.7,
+        #     )
         elif provider == "ollama":
             return ChatOllama(
                 model=config.model_name,
@@ -61,6 +62,10 @@ class ChatService:
 
     def get_session(self, session_id: int) -> Optional[ChatSession]:
         return self._session.get(ChatSession, session_id)
+
+    def list_sessions(self) -> List[ChatSession]:
+        """获取所有聊天会话，按更新时间倒序排列"""
+        return self._session.query(ChatSession).order_by(desc(ChatSession.updated_at)).all()
 
     def get_session_messages(self, session_id: int) -> List[ChatMessage]:
         return (
@@ -145,6 +150,14 @@ class ChatService:
                     yield token
         except Exception as e:
             yield f"[ERROR: {str(e)}]"
+
+    def delete_session(self, session_id: int) -> bool:
+        session = self.get_session(session_id)
+        if session:
+            self._session.delete(session)
+            self._session.commit()
+            return True
+        return False
 
     def close(self):
         self._session.close()

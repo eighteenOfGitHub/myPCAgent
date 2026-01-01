@@ -70,7 +70,7 @@ class ChatMessageRead(BaseModel):
 # --- Chat Turn (High-level Interaction) ---
 class ChatTurnRequest(BaseModel):
     session_id: int
-    user_message: str
+    user_message: str | None = None
 
 
 class ChatTurnResponse(BaseModel):
