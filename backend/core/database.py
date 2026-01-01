@@ -5,16 +5,20 @@ from sqlalchemy.engine import Engine
 import os
 from pathlib import Path
 
+from ..config.back_config import back_config
+
 # ----------------------------
 # 数据库配置
 # ----------------------------
 
 # 确保 data 目录存在
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATA_DIR = PROJECT_ROOT / back_config.DATABASE.data_dir
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # SQLite 数据库路径
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR}/pcagent.db")
+DB_PATH = DATA_DIR / back_config.DATABASE.db_filename
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
 # SQLite 需要特殊参数
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
