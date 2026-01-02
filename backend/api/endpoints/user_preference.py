@@ -4,10 +4,10 @@ from typing import Optional
 from backend.services.user_preference_service import UserPreferenceService
 from backend.db_models.user_config import UserPreference
 
-router = APIRouter()
+router = APIRouter(prefix="/preference", tags=["User Preference"])
 
 
-@router.get("/preference", response_model=UserPreference)
+@router.get("", response_model=UserPreference)
 def get_user_preference():
     """获取当前用户偏好设置"""
     service = UserPreferenceService()
@@ -18,7 +18,7 @@ def get_user_preference():
         raise HTTPException(status_code=500, detail=f"获取偏好失败: {str(e)}")
 
 
-@router.post("/preference/default-llm")
+@router.post("/default-llm")
 def set_default_llm_config(config_id: Optional[int] = None):
     """
     设置默认 LLM 配置
