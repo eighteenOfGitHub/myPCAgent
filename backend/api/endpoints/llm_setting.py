@@ -1,60 +1,87 @@
 # backend/api/endpoints/llm_setting.py
+
 from fastapi import APIRouter, HTTPException, Body
 from typing import List, Optional
 from backend.services.llm_setting_service import LLMSettingService
 from backend.db_models.user_config import LLMConfig
+from shared.schemas import LLMConfigCreate, LLMConfigResponse
 
-router = APIRouter(prefix="/settings/llm")  # ← 关键：统一前缀
+router = APIRouter(prefix="/settings/llm", tags=["llm-setting"])
 
-
-@router.post("", response_model=LLMConfig)
+@router.post("", response_model=LLMConfigResponse) # 保留原来的 response_model
 def create_llm_config(
-    provider: str = Body(..., embed=True),
-    model_name: str = Body(..., embed=True),
-    api_key: str = Body(..., embed=True),
-    base_url: Optional[str] = Body(None, embed=True),
+    config_data: LLMConfigCreate, # 使用 Pydantic 模型接收请求体
 ):
-    """创建一个新的 LLM 配置"""
+    """
+    测试 LLM 连通性，如果成功则创建并保存配置。
+    """
     service = LLMSettingService()
     try:
-        config = service.create(
-            provider=provider,
-            model_name=model_name,
-            api_key_input=api_key,
-            base_url=base_url,
+        # 1. 先测试连通性
+        test_result = service.test_connection(
+            provider=config_data.provider.value, # 转换为字符串
+            model_name=config_data.model_name,
+            api_key_input=config_data.api_key,
+            base_url=config_data.base_url
         )
-        return config
+        
+        if not test_result["success"]:
+            # 如果测试失败，抛出 HTTPException
+            raise HTTPException(status_code=400, detail=test_result["message"])
+
+        # 2. 测试成功，调用 service 的 create 方法保存
+        saved_config = service.create(
+            provider=config_data.provider.value, # 转换为字符串
+            model_name=config_data.model_name,
+            api_key_input=config_data.api_key,
+            base_url=config_data.base_url
+        )
+        
+        # 3. 测试成功且保存成功，返回保存的配置信息 (LLMConfig)
+        # FastAPI 会自动将 LLMConfig 对象序列化为 JSON
+        return saved_config
+
+    except HTTPException:
+        # 如果是 HTTPException，直接抛出，FastAPI 会处理
+        raise
     except ValueError as e:
+        # 处理 service.create 可能抛出的 ValueError
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        # 处理其他意外错误
         raise HTTPException(status_code=500, detail=f"创建 LLM 配置失败: {str(e)}")
 
-
-@router.put("/{config_id}", response_model=LLMConfig)
-def update_llm_config(
-    config_id: int,
-    provider: Optional[str] = Body(None, embed=True),
-    model_name: Optional[str] = Body(None, embed=True),
-    api_key: Optional[str] = Body(None, embed=True),
-    base_url: Optional[str] = Body(None, embed=True),
-):
-    """更新指定 ID 的 LLM 配置"""
+# --- 新增：测试现有配置接口 ---
+@router.post("/{config_id}/test") # 响应类型改为 str 或其他，或者创建一个专门的响应模型
+def test_existing_config(config_id: int):
+    """
+    测试一个已存在的 LLM 配置。
+    """
     service = LLMSettingService()
     try:
-        config = service.update(
-            config_id=config_id,
-            provider=provider,
-            model_name=model_name,
-            api_key_input=api_key,
-            base_url=base_url,
+        config = service.get_by_id(config_id)
+        if not config:
+            raise HTTPException(status_code=404, detail="LLM 配置不存在")
+        
+        test_result = service.test_connection(
+            provider=config.provider,
+            model_name=config.model_name,
+            api_key_input=config.api_key, # 注意：这里使用数据库中存储的 key
+            base_url=config.base_url
         )
-        return config
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        
+        if test_result["success"]:
+            return {"success": True, "message": test_result["message"]}
+        else:
+            # 测试失败，抛出 HTTPException
+            raise HTTPException(status_code=400, detail=test_result["message"])
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"更新 LLM 配置失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"测试 LLM 配置失败: {str(e)}")
 
-
+# --- 保留原有的其他接口 ---
 @router.get("", response_model=List[LLMConfig])
 def list_llm_configs():
     """列出所有 LLM 配置（供前端下拉选择）"""
@@ -65,7 +92,6 @@ def list_llm_configs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取 LLM 配置列表失败: {str(e)}")
 
-
 @router.get("/{config_id}", response_model=LLMConfig)
 def get_llm_config(config_id: int):
     """获取指定 ID 的 LLM 配置"""
@@ -74,7 +100,6 @@ def get_llm_config(config_id: int):
     if not config:
         raise HTTPException(status_code=404, detail="LLM 配置不存在")
     return config
-
 
 @router.delete("/{config_id}")
 def delete_llm_config(config_id: int):
