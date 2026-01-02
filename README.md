@@ -32,64 +32,74 @@
 
 ```
 myPCAgent/
-│
 ├── .gitignore
 ├── clear_cache.py
 ├── README.md
 ├── start.bat
 ├── tree.txt
-│
-├── backend/
+├── backend
 │   ├── main.py
-│   │
-│   ├── api/
+│   ├── __init__.py
+│   ├── api
 │   │   ├── router.py
 │   │   ├── __init__.py
-│   │   └── endpoints/
+│   │   └── endpoints
+│   │       ├── chat.py
 │   │       ├── greeting.py
+│   │       ├── health.py
+│   │       ├── llm_setting.py
+│   │       ├── user_preference.py
 │   │       └── __init__.py
-│   │
-│   ├── config/
-│   │   ├── back_config.py
-│   │   ├── back_config.yaml
-│   │   └── __init__.py
-│   │
-│   ├── core/
-│   │   ├── bootstrap.py
+│   ├── core
 │   │   ├── database.py
 │   │   ├── __init__.py
-│   │   │
-│   │   ├── services/
-│   │   │   ├── greeting_service.py
+│   │   ├── config
+│   │   │   ├── back_config.py
+│   │   │   ├── back_config.yaml
 │   │   │   └── __init__.py
-│   │   │
-│   │   └── tools/
-│   │
-│   ├── data/
-│   ├── db_models/
+│   │   └── utils
+│   ├── data
+│   │   └── pcagent.db
+│   ├── db_models
+│   │   ├── chat_models.py
+│   │   ├── user_config.py
 │   │   └── __init__.py
-│   ├── logs/
-│   └── migrations/
+│   ├── logs
+│   ├── migrations
+│   │   └── __init__.py
+│   └── services
+│       ├── chat_service.py
+│       ├── greeting_service.py
+│       ├── llm_setting_service.py
+│       ├── user_preference_service.py
 │       └── __init__.py
-│
-├── config/
+│   
+├── config
 │   ├── env_config.py
 │   ├── env_config.yaml
 │   └── __init__.py
-│
-├── frontend/
+│   
+├── frontend
 │   ├── app.py
-│   │
-│   ├── handlers/
-│   │   └── dashboard.py
-│   │
-│   └── ui/
-│       └── dashboard.py
-│
-└── shared/
+│   ├── __init__.py
+│   ├── handlers
+│   │   ├── chat_handler.py
+│   │   ├── dashboard.py
+│   │   └── llm_models_setting.py
+│   └── ui
+│       ├── main_layout.py
+│       └── pages
+│           ├── agent.py
+│           ├── chat.py
+│           ├── dashboard.py
+│           ├── general_setting.py
+│           ├── llm_models_setting.py
+│           ├── settings.py
+│           └── __init__.py
+│           
+└── shared
     ├── schemas.py
-    └── models/
-        └── chat_models.py
+    └── __init__.py
   
 ```
 
