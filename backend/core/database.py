@@ -1,9 +1,12 @@
 # backend/core/database.py
 
-from sqlmodel import create_engine, Session, SQLModel
-from sqlalchemy.engine import Engine
 import os
 from pathlib import Path
+
+from contextlib import contextmanager
+from sqlmodel import inspect
+from sqlmodel import create_engine, Session, SQLModel
+from sqlalchemy.engine import Engine
 
 from ..core.config.back_config import back_config
 
@@ -38,10 +41,17 @@ def init_db():
     """
     # 导入所有模型（触发 SQLModel 元类注册）
     from backend.db_models.chat_models import ChatSession, ChatMessage
-    from backend.db_models.user_config import  LLMConfig, UserPreference
+    from backend.db_models.user_config import LLMConfig, UserPreference
 
-    # print("✅ Registered tables:", list(SQLModel.metadata.tables.keys()))
 
+
+    # 获取数据库中已存在的表名列表
+    existing_tables = inspect(engine).get_table_names()
+    if existing_tables:
+        print(f"📊 已存在的表: {existing_tables}")
+    else:
+        print("📊 已存在的表: []")
+        
     SQLModel.metadata.create_all(engine)
 
 
@@ -56,3 +66,18 @@ def get_session():
     """
     with Session(engine) as session:
         yield session
+
+
+# 新增：上下文管理器
+@contextmanager
+def get_db_session():
+    """提供一个数据库会话的上下文管理器，确保会话在使用后被正确关闭。"""
+    session_gen = get_session()
+    session = next(session_gen)
+    try:
+        yield session
+    except Exception:
+        session.rollback() # 如果发生异常，回滚事务
+        raise # 重新抛出异常
+    finally:
+        next(session_gen, None) # 触发生成器的 finally 块以关闭 session        
