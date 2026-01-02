@@ -17,5 +17,5 @@ async def generate_greeting(name: str = "World") -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: 包含问候语的字典。
     """
-    greeting_message = f"Hello, {name}! Welcome to LangGraph!"
+    greeting_message = f"Hello, {name}! Welcome to PCAgent!"
     return {"message": greeting_message}
