@@ -1,111 +1,104 @@
-# backend/api/endpoints/llm_setting.py
+# backend/middleware/logging_middleware.py
+import logging
+import time
+from fastapi import Request, Response
+from fastapi.exceptions import HTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Union
+import json
 
-from fastapi import APIRouter, HTTPException, Body
-from typing import List, Optional
-from backend.services.llm_setting_service import LLMSettingService
-from backend.db_models.user_config import LLMConfig
-from shared.schemas import LLMConfigCreate, LLMConfigResponse
+logger = logging.getLogger("backend.api")
 
-router = APIRouter(prefix="/settings/llm", tags=["llm-setting"])
-
-@router.post("", response_model=LLMConfigResponse) # 保留原来的 response_model
-def create_llm_config(
-    config_data: LLMConfigCreate, # 使用 Pydantic 模型接收请求体
-):
+class LoggingMiddleware(BaseHTTPMiddleware):
     """
-    测试 LLM 连通性，如果成功则创建并保存配置。
+    FastAPI 中间件，用于记录 API 请求摘要。
+    记录请求方法、路径、状态码、处理时间，以及响应内容的类型或异常详情。
+    根据 HTTP 状态码选择日志级别以改变控制台颜色。
     """
-    service = LLMSettingService()
-    try:
-        # 1. 先测试连通性
-        test_result = service.test_connection(
-            provider=config_data.provider.value, # 转换为字符串
-            model_name=config_data.model_name,
-            api_key_input=config_data.api_key,
-            base_url=config_data.base_url
-        )
-        
-        if not test_result["success"]:
-            # 如果测试失败，抛出 HTTPException
-            raise HTTPException(status_code=400, detail=test_result["message"])
+    async def dispatch(self, request: Request, call_next):
+        """
+        拦截请求，记录处理时间、状态码、响应内容类型或异常详情到日志。
+        """
+        start_time = time.time()
 
-        # 2. 测试成功，调用 service 的 create 方法保存
-        saved_config = service.create(
-            provider=config_data.provider.value, # 转换为字符串
-            model_name=config_data.model_name,
-            api_key_input=config_data.api_key,
-            base_url=config_data.base_url
-        )
-        
-        # 3. 测试成功且保存成功，返回保存的配置信息 (LLMConfig)
-        # FastAPI 会自动将 LLMConfig 对象序列化为 JSON
-        return saved_config
+        response: Union[Response, None] = None
+        response_status_code = 0
+        content_info = ""
 
-    except HTTPException:
-        # 如果是 HTTPException，直接抛出，FastAPI 会处理
-        raise
-    except ValueError as e:
-        # 处理 service.create 可能抛出的 ValueError
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        # 处理其他意外错误
-        raise HTTPException(status_code=500, detail=f"创建 LLM 配置失败: {str(e)}")
+        try:
+            response = await call_next(request)
+            response_status_code = response.status_code
 
-# --- 新增：测试现有配置接口 ---
-@router.post("/{config_id}/test") # 响应类型改为 str 或其他，或者创建一个专门的响应模型
-def test_existing_config(config_id: int):
-    """
-    测试一个已存在的 LLM 配置。
-    """
-    service = LLMSettingService()
-    try:
-        config = service.get_by_id(config_id)
-        if not config:
-            raise HTTPException(status_code=404, detail="LLM 配置不存在")
-        
-        test_result = service.test_connection(
-            provider=config.provider,
-            model_name=config.model_name,
-            api_key_input=config.api_key, # 注意：这里使用数据库中存储的 key
-            base_url=config.base_url
-        )
-        
-        if test_result["success"]:
-            return {"success": True, "message": test_result["message"]}
+            # 暂时不处理流式响应
+            if isinstance(response, StreamingResponse):
+                content_info = f"Streaming Response (Status: {response_status_code})"
+            else:
+                response_body_chunks = []
+                original_body_iterator = response.body_iterator
+
+                async def capture_body():
+                    async for chunk in original_body_iterator:
+                        response_body_chunks.append(chunk)
+                        yield chunk
+
+                response.body_iterator = capture_body()
+
+                async for chunk in response.body_iterator:
+                    pass
+
+                async def original_body():
+                    for chunk in response_body_chunks:
+                        yield chunk
+                response.body_iterator = original_body()
+
+                response_body = b"".join(response_body_chunks)
+
+                try:
+                    decoded_body = response_body.decode('utf-8')
+                    parsed_content = json.loads(decoded_body)
+
+                    # 根据不同类型的响应内容进行不同的处理
+                    if isinstance(parsed_content, dict):
+                        content_info = f"Dict Response (Status: {response_status_code})"
+                    elif isinstance(parsed_content, list):
+                        content_info = f"List Response (Status: {response_status_code})"
+                    else:
+                        if isinstance(parsed_content, (str, int, float, bool)):
+                             content_info = f"Primitive Value Response: {parsed_content} (Type: {type(parsed_content).__name__}, Status: {response_status_code})"
+                        else:
+                            content_info = f"Other JSON Type Response: {type(parsed_content).__name__} (Status: {response_status_code})"
+
+                except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                    try:
+                        decoded_body = response_body.decode('utf-8')
+                        content_info = f"Plain Text Response: {decoded_body[:100]}{'...' if len(decoded_body) > 100 else ''} (Status: {response_status_code})"
+                    except UnicodeDecodeError:
+                        content_info = f"Binary Response ({len(response_body)} bytes, Status: {response_status_code})"
+
+        except HTTPException as e:
+            response_status_code = e.status_code
+            content_info = f"HTTPException: {e.detail} (Status: {e.status_code})"
+        except Exception as e:
+            response_status_code = 500
+            content_info = f"Unhandled Exception: {type(e).__name__}: {e}"
+            logger.error(content_info, exc_info=True)
+            raise
+
+        process_time = time.time() - start_time
+
+        if 200 <= response_status_code < 300:
+            log_level = logging.INFO
+        elif 300 <= response_status_code < 400:
+            log_level = logging.WARNING
+        elif 400 <= response_status_code < 500:
+            log_level = logging.WARNING
         else:
-            # 测试失败，抛出 HTTPException
-            raise HTTPException(status_code=400, detail=test_result["message"])
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"测试 LLM 配置失败: {str(e)}")
+            log_level = logging.ERROR
 
-# --- 保留原有的其他接口 ---
-@router.get("", response_model=List[LLMConfig])
-def list_llm_configs():
-    """列出所有 LLM 配置（供前端下拉选择）"""
-    service = LLMSettingService()
-    try:
-        configs = service.get_all()
-        return configs
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取 LLM 配置列表失败: {str(e)}")
+        log_message = f"{request.method} {request.url.path} - {response_status_code} ({round(process_time, 4)}s) - {content_info}"
 
-@router.get("/{config_id}", response_model=LLMConfig)
-def get_llm_config(config_id: int):
-    """获取指定 ID 的 LLM 配置"""
-    service = LLMSettingService()
-    config = service.get_by_id(config_id)
-    if not config:
-        raise HTTPException(status_code=404, detail="LLM 配置不存在")
-    return config
+        logger.log(log_level, log_message)
 
-@router.delete("/{config_id}")
-def delete_llm_config(config_id: int):
-    """删除指定 ID 的 LLM 配置"""
-    service = LLMSettingService()
-    deleted = service.delete(config_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="LLM 配置不存在或已删除")
-    return {"status": "success", "message": f"配置 {config_id} 已删除"}
+        return response

@@ -2,12 +2,17 @@
 import os
 import re
 from typing import List, Optional, Dict, Any
+import logging
+
 from sqlmodel import Session, select
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
+
 from backend.core.database import get_db_session
 from backend.db_models.user_config import LLMConfig
+
+logger = logging.getLogger(__name__)
 
 class LLMSettingService:
     """LLM 配置服务（支持多配置，ID=1 为默认活跃配置）"""
@@ -28,7 +33,9 @@ class LLMSettingService:
             env_value = os.getenv(clean_input)
             if not env_value:
                 raise ValueError(f"环境变量 '{clean_input}' 未设置，请输入有效的 API Key")
+            logger.debug("Resolved API key from environment variable: %s", clean_input)
             return env_value
+        logger.debug("Using provided API key directly (not an env var).")
         return clean_input
 
     def create(
@@ -46,6 +53,7 @@ class LLMSettingService:
         # 如果 api_key_input 为空且 provider 是 ollama，则不解析，直接设为 None 或空字符串
         if not api_key_input and provider.lower() == "ollama":
             real_api_key = api_key_input
+            logger.debug("Ollama provider detected, skipping API key resolution.")
         else:
             real_api_key = self._resolve_api_key(api_key_input)
 
@@ -60,23 +68,40 @@ class LLMSettingService:
             session.add(config)
             session.commit()
             session.refresh(config)
+        
+        logger.info(
+            "New LLM configuration created successfully. "
+            "config_id=%d, provider=%s, model_name=%s",
+            config.id,
+            config.provider,
+            config.model_name
+        )
+
         return config
 
     def get_by_id(self, config_id: int) -> Optional[LLMConfig]:
         """根据 ID 获取配置"""
         with get_db_session() as session:
-            return session.get(LLMConfig, config_id)
+            config = session.get(LLMConfig, config_id)
+            if config is None:
+                logger.debug("LLM configuration not found for config_id=%d", config_id)
+            return config
 
     def get_all(self) -> List[LLMConfig]:
         """ 获取所有 LLM 配置（供前端下拉选择） """
         with get_db_session() as session:
-            return session.exec(select(LLMConfig)).all()
+            configs = session.exec(select(LLMConfig)).all()
+            logger.debug("Retrieved all LLM configurations. Count: %d", len(configs))
+            return configs
 
     def get_active(self) -> LLMConfig:
         """ 获取当前活跃配置（约定使用 ID=1） """
         config = self.get_by_id(1)
         if not config:
-            raise RuntimeError("尚未配置默认 LLM（ID=1），请先创建一个配置")
+            error_msg = "尚未配置默认 LLM（ID=1），请先创建一个配置"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        logger.debug("Active LLM configuration retrieved. config_id=1, provider=%s, model_name=%s", config.provider, config.model_name)
         return config
 
     def delete(self, config_id: int) -> bool:
@@ -84,9 +109,12 @@ class LLMSettingService:
         with get_db_session() as session:
             config = session.get(LLMConfig, config_id)
             if not config:
+                logger.warning("Attempted to delete non-existent LLM configuration. config_id=%d", config_id)
                 return False
             session.delete(config)
             session.commit()
+        
+        logger.info("LLM configuration deleted successfully. config_id=%d", config_id)
         return True
 
     # --- 新增：使用 langchain 测试连通性方法 ---
@@ -133,20 +161,29 @@ class LLMSettingService:
                     timeout=10
                 )
             else:
-                return {"success": False, "message": f"不支持的 Provider: {provider}"}
+                error_msg = f"不支持的 Provider: {provider}"
+                logger.error(error_msg)
+                return {"success": False, "message": error_msg}
 
             if not llm:
-                return {"success": False, "message": "初始化 LLM 客户端失败"}
+                error_msg = "初始化 LLM 客户端失败"
+                logger.error(error_msg)
+                return {"success": False, "message": error_msg}
 
             # 3. 发送一个简单的请求来测试
             # 使用 invoke 方法调用模型，这是一个通用方法
+            logger.debug("Testing connection to LLM. provider=%s, model=%s", provider, model_name)
             response = llm.invoke("Hello, please reply with 'Hello, World!' in 10 words or less.")
 
             # 4. 检查响应
             if response and hasattr(response, 'content') and response.content:
-                return {"success": True, "message": f"{provider} 连接测试成功！响应: {response.content[:50]}..."} # 截取前50字符
+                success_msg = f"{provider} 连接测试成功！"
+                logger.info(success_msg)
+                return {"success": True, "message": success_msg}
             else:
-                return {"success": False, "message": f"{provider} 连接测试失败，未收到有效响应。"}
+                fail_msg = f"{provider} 连接测试失败，未收到有效响应。"
+                logger.warning(fail_msg)
+                return {"success": False, "message": fail_msg}
         except Exception as e:
             # langchain 的错误通常比较通用，可以根据 e.__class__.__name__ 进行细分
             error_msg = str(e)
@@ -156,4 +193,6 @@ class LLMSettingService:
                 error_msg = "API 调用频率超限，请稍后再试。"
             elif "Connection" in error_msg or "timeout" in error_msg.lower():
                 error_msg = f"连接 {provider} 服务器失败，请检查网络或 Base URL。"
-            return {"success": False, "message": f"测试连接时发生错误: {error_msg}"}
+            full_error_msg = f"测试连接时发生错误: {error_msg}"
+            logger.error(full_error_msg, exc_info=True)
+            return {"success": False, "message": full_error_msg}

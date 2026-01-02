@@ -5,7 +5,7 @@ set PROJECT_ROOT=%~dp0
 
 :: ? 后端：在项目根目录运行，不设 PYTHONPATH
 echo 后端启动中...
-start "PC Agent Backend" cmd /k "cd /d "%PROJECT_ROOT%" && uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir backend --reload-dir shared --reload-dir config"
+start "PC Agent Backend" cmd /k "cd /d "%PROJECT_ROOT%" && uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir backend --reload-dir shared --reload-dir config --no-access-log"
 timeout /t 1 /nobreak >nul
 
 :: ? 前端：在 frontend 目录运行，需要 PYTHONPATH 访问 shared/backend

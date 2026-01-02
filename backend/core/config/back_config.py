@@ -3,9 +3,11 @@ import yaml
 from pathlib import Path
 from typing import List, Optional
 from pydantic import BaseModel, Field
+import logging
+
 from config.env_config import env_config
 
-
+logger = logging.getLogger(__name__)
 
 # --- 数据库配置子模型 ---
 class DatabaseConfig(BaseModel):
@@ -40,6 +42,15 @@ class BackConfig(BaseModel):
         self.BACKEND_RELOAD = True if env_config.RUN_ENV == 'development' else False
         self.ALLOWED_ORIGINS = env_config.ALLOWED_API_ORIGINS
 
+        logger.info(
+            "BackConfig loaded from environment variables. "
+            "RUN_ENV=%s, BACKEND_HOST=%s, BACKEND_PORT=%d, BACKEND_RELOAD=%s",
+            env_config.RUN_ENV,
+            self.BACKEND_HOST,
+            self.BACKEND_PORT,
+            self.BACKEND_RELOAD
+        )
+
         # 从 YAML 文件加载配置（优先级高于默认值，但低于环境变量）
         yaml_path = Path(__file__).parent / "back_config.yaml"
         yaml_data = self._load_yaml_config(yaml_path)
@@ -53,20 +64,35 @@ class BackConfig(BaseModel):
             }
             self.DATABASE = DatabaseConfig(**updated_db)
 
+            logger.info(
+                "Database configuration applied from YAML file. "
+                "data_dir=%s, db_filename=%s",
+                self.DATABASE.data_dir,
+                self.DATABASE.db_filename
+            )
+        else:
+            logger.info(
+                "Using default or environment-derived database configuration. "
+                "data_dir=%s, db_filename=%s",
+                self.DATABASE.data_dir,
+                self.DATABASE.db_filename
+            )
+
     @staticmethod
     def _load_yaml_config(yaml_path: Path) -> dict:
         """从 YAML 文件安全加载配置。"""
         try:
             with open(yaml_path, 'r', encoding='utf-8') as file:
-                return yaml.safe_load(file) or {}
+                data = yaml.safe_load(file) or {}
+                return data
         except FileNotFoundError:
-            print(f"警告: 未找到配置文件 {yaml_path}，使用默认配置。")
+            logger.error("YAML configuration file %s not found", yaml_path)
             return {}
         except yaml.YAMLError as e:
-            print(f"错误: 解析 YAML 文件 {yaml_path} 失败: {e}")
+            logger.error("Failed to parse YAML configuration file %s: %s", yaml_path, e)
             return {}
         except Exception as e:
-            print(f"错误: 加载配置文件 {yaml_path} 时发生未知错误: {e}")
+            logger.error("An unexpected error occurred while loading config file %s: %s", yaml_path, e)
             return {}
 
 # 创建全局配置实例
