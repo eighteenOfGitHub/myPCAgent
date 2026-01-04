@@ -1,6 +1,6 @@
 # frontend/ui/pages/llm_models_setting.py
 import gradio as gr
-from frontend.handlers import llm_models_setting  # 导入 handlers 模块
+from frontend.handlers import llm_setting  # 导入 handlers 模块
 from shared.schemas import LLMProvider  # 导入枚举，用于类型检查和转换
 
 
@@ -83,7 +83,7 @@ def create_llm_models_setting_ui(visible=True):
             except ValueError:
                 return gr.update(visible=True, value=f"❌ 无效的 Provider: {provider_val}")
 
-            success, message = llm_models_setting.submit_new_llm_config(
+            success, message = llm_setting.submit_new_llm_config(
                 provider=provider_enum,
                 model_name=model,
                 api_key=key,
@@ -122,14 +122,14 @@ def create_llm_models_setting_ui(visible=True):
         # 这里仅为示例行的按钮做演示
         def on_test_click():
             # 示例：测试 ID 为 1 的配置
-            message = llm_models_setting.test_existing_llm_config(config_id=1)
+            message = llm_setting.test_existing_llm_config(config_id=1)
             # 在实际应用中，你需要知道点击的是哪一行，可以通过一个隐藏的 ID 输入组件传递
             # 或者，点击后刷新整个列表
             return message
 
         def on_delete_click():
             # 示例：删除 ID 为 1 的配置
-            success = llm_models_setting.delete_llm_config(config_id=1)
+            success = llm_setting.delete_llm_config(config_id=1)
             # 在实际应用中，你需要知道点击的是哪一行
             # 点击后通常需要刷新列表
             return "✅ 删除成功" if success else "❌ 删除失败"
