@@ -1,7 +1,7 @@
 # frontend/ui/pages/chat.py
 import gradio as gr
 
-from frontend.handlers.chat_handler import (
+from frontend.handlers.chat import (
     load_session_list,
     create_new_session,
     load_messages,

@@ -1,7 +1,7 @@
 # frontend/ui/main_layout.py
 import gradio as gr
 from frontend.ui.pages import dashboard, chat, agent, settings
-from frontend.handlers.chat_handler import load_session_list
+from frontend.handlers.chat import load_session_list
 
 def create_gradio_interface():
     """
