@@ -9,6 +9,9 @@ from sqlmodel import create_engine, Session, SQLModel
 from sqlalchemy.engine import Engine
 
 from ..core.config.back_config import back_config
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ----------------------------
 # 数据库配置
@@ -43,15 +46,13 @@ def init_db():
     from backend.db_models.chat_models import ChatSession, ChatMessage
     from backend.db_models.user_config import LLMConfig, UserPreference
 
-
-
     # 获取数据库中已存在的表名列表
     existing_tables = inspect(engine).get_table_names()
     if existing_tables:
-        print(f"📊 已存在的表: {existing_tables}")
+        logger.info(f"📊 已存在的表: {existing_tables}")
     else:
-        print("📊 已存在的表: []")
-        
+        logger.info("📊 已存在的表: []")
+    
     SQLModel.metadata.create_all(engine)
 
 
