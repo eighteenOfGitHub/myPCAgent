@@ -114,7 +114,6 @@
 |   |   +---services
 |   |   \---sys
 |   |           AI编程规范.md
-|   |           github代码管理与协作开发规范.md
 |   |           后端服务开发规范与流程速查手册.md
 |   |           日志系统开发规范文档.md
 |   |           
@@ -128,6 +127,8 @@
 |       |       python_note.md
 |       |       
 |       \---systematic_note
+|               github代码管理与协作开发规范.md
+|               
 +---frontend
 |   |   app.py
 |   |   __init__.py

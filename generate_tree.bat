@@ -1,4 +1,6 @@
 @echo off
+chcp 65001 >nul
+
 REM 先运行同目录下的clear_cache.py文件
 python clear_cache.py
 if %errorlevel% neq 0 (
@@ -9,7 +11,6 @@ if %errorlevel% neq 0 (
 
 REM 然后生成当前目录的文件树结构并保存到tree.txt
 tree /f /a > tree.txt
-chcp 65001 >nul
 
 REM 检查是否成功生成文件树
 if %errorlevel% equ 0 (
