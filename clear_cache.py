@@ -36,7 +36,7 @@ def clear_python_cache(root_dir: Path):
                 except Exception as e:
                     print(f"[WARNING]  无法删除 {path}: {e}")
 
-    print(f"\n[INFO] 清理完成！共删除 {deleted_count} 个缓存项。")
+    print(f"[INFO] 清理完成！共删除 {deleted_count} 个缓存项。")
 
 if __name__ == "__main__":
     # 支持传入根目录
