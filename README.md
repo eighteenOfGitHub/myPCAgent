@@ -153,6 +153,8 @@
         chat.py
         greeting.py
         llm_setting.py
+        schemas.py
+        user_preference.py
         __init__.py
         
 
