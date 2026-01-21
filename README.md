@@ -19,6 +19,10 @@
 
 ## 二、版本新增
 
+### v0.2.3
+
+- feat: 设置页面显示已保存模型
+
 ### v0.2.2
 
 - bulid: 日志系统
@@ -37,82 +41,115 @@
 ## 三、项目结构
 
 ```
-myPCAgent/
-├── .gitignore
-├── clear_cache.py
-├── README.md
-├── start.bat                 # 项目总启动脚本 (Windows)
-├── tree.txt
-│
-├── backend/                  # 后端服务 (FastAPI)
-│   ├── main.py               # 后端主入口：初始化 DB、配置、路由，启动 FastAPI
-│   ├── __init__.py
-│   │
-│   ├── api/
-│   │   ├── router.py         # API 路由聚合器
-│   │   └── endpoints/        # API 端点定义
-│   │       ├── chat.py
-│   │       ├── greeting.py
-│   │       ├── health.py
-│   │       ├── llm_setting.py
-│   │       └── user_preference.py
-│   │
-│   ├── core/                 # 核心模块
-│   │   ├── database.py       # 数据库初始化
-│   │   ├── logger.py         # 日志系统配置
-│   │   └── config/
-│   │       ├── back_config.py    # 后端配置加载器
-│   │       └── back_config.yaml  # 后端配置文件
-│   │
-│   ├── data/
-│   │   └── pcagent.db        # SQLite 数据库文件 (存储能力/用户配置元数据)
-│   │
-│   ├── db_models/            # SQLModel 数据模型
-│   │   ├── chat_models.py
-│   │   └── user_config.py
-│   │
-│   ├── logs/
-│   │   └── app.log           # 应用运行日志
-│   │
-│   ├── middleware/
-│   │   └── logging_middleware.py # 请求日志中间件
-│   │
-│   └── services/             # 业务逻辑服务层
-│       ├── chat_service.py
-│       ├── greeting_service.py
-│       ├── llm_setting_service.py
-│       └── user_preference_service.py
-│
-├── config/                   # 全局共享配置
-│   ├── env_config.py
-│   └── env_config.yaml
-│
-├── docs/                     # 项目文档
-│   └── ...
-│
-├── frontend/                 # 前端应用 (Gradio)
-│   ├── app.py                # 前端主入口：构建 UI 并启动 Gradio
-│   ├── __init__.py
-│   │
-│   ├── handlers/             # 前端事件处理器
-│   │   ├── chat_handler.py
-│   │   ├── dashboard.py
-│   │   └── llm_models_setting.py
-│   │
-│   ├── ui/
-│   │   └── main_layout.py    # 主界面布局
-│   │
-│   └── pages/                # 各功能页面组件
-│       ├── agent.py
-│       ├── chat.py
-│       ├── dashboard.py
-│       ├── general_setting.py
-│       ├── llm_models_setting.py
-│       └── settings.py
-│
-└── shared/                   # 前后端共享代码
-    ├── schemas.py            # Pydantic/SQLModel 模型 (用于 API Schema)
-    └── __init__.py
+|   .gitignore
+|   clear_cache.py
+|   generate_tree.bat
+|   README.md
+|   start.bat
+|   tree.txt
+|   
++---backend
+|   |   main.py
+|   |   __init__.py
+|   |   
+|   +---api
+|   |   |   router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---endpoints
+|   |           chat.py
+|   |           greeting.py
+|   |           health.py
+|   |           llm_setting.py
+|   |           user_preference.py
+|   |           __init__.py
+|   |           
+|   +---core
+|   |   |   database.py
+|   |   |   logger.py
+|   |   |   __init__.py
+|   |   |   
+|   |   +---config
+|   |   |       back_config.py
+|   |   |       back_config.yaml
+|   |   |       log_config.yaml
+|   |   |       __init__.py
+|   |   |       
+|   |   \---utils
+|   +---data
+|   |       pcagent.db
+|   |       
+|   +---db_models
+|   |       chat_models.py
+|   |       user_config.py
+|   |       __init__.py
+|   |       
+|   +---logs
+|   |       app.log
+|   |       
+|   +---middleware
+|   |       logging_middleware.py
+|   |       
+|   +---migrations
+|   |       __init__.py
+|   |       
+|   \---services
+|           chat_service.py
+|           greeting_service.py
+|           llm_setting_service.py
+|           user_preference_service.py
+|           __init__.py
+|           
++---config
+|       env_config.py
+|       env_config.yaml
+|       __init__.py
+|       
++---docs
+|   +---development
+|   |   +---services
+|   |   \---sys
+|   |           AI编程规范.md
+|   |           github代码管理与协作开发规范.md
+|   |           后端服务开发规范与流程速查手册.md
+|   |           日志系统开发规范文档.md
+|   |           
+|   \---notes
+|       |   ideas.md
+|       |   
+|       +---notes_from_error
+|       |       database_note.md
+|       |       logging_note.md
+|       |       project_note.md
+|       |       python_note.md
+|       |       
+|       \---systematic_note
++---frontend
+|   |   app.py
+|   |   __init__.py
+|   |   
+|   +---handlers
+|   |       chat.py
+|   |       dashboard.py
+|   |       llm_setting.py
+|   |       
+|   \---ui
+|       |   main_layout.py
+|       |   
+|       \---pages
+|               agent.py
+|               chat.py
+|               dashboard.py
+|               general_setting.py
+|               llm_setting.py
+|               settings.py
+|               __init__.py
+|               
+\---shared
+        schemas.py
+        __init__.py
+        
+
   
 ```
 
