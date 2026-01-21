@@ -36,4 +36,3 @@ if %errorlevel% equ 0 (
 )
 
 echo 完成。
-pause
