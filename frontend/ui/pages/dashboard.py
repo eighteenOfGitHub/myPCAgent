@@ -13,5 +13,8 @@ def render():
     """)
 
     # 从根目录下读取README.md并展示
-    with open("../README.md", "r", encoding="utf-8") as f:
-        gr.Markdown(f.read())
+    try:
+        with open("../README.md", "r", encoding="utf-8") as f:
+            gr.Markdown(f.read())
+    except FileNotFoundError:
+        pass
