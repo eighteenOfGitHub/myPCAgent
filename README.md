@@ -19,8 +19,8 @@
 
 ### v0.2.4
 
-- factor: shared中schemas的响应体模型按照api/endpoint拆分到shared下的不同文件，按照对应endpoint命名
-
+- refactor: shared中schemas的响应体模型按照api/endpoint拆分到shared下的不同文件，按照对应endpoint命名
+- refactor: 移除热重载功能，简化启动流程
 
 ### v0.2.3
 
@@ -250,7 +250,9 @@ Your Agent Project 的启动流程涉及**后端 (FastAPI)** 和**前端 (Gradio
 
 | 命令 | 说明 |
 |------|------|
-| `.\start.bat` | 启动后端 (FastAPI @ 8000) 和前端 (Gradio @ 7860)，推荐方式 |
+| `.\start.bat` | 启动后端 (FastAPI @ 8000) 和前端 (Gradio @ 7860) |
+| `python backend/main.py` | 单独启动后端服务 |
+| `python frontend/app.py` | 单独启动前端服务 |
 | `python clear_cache.py` | 清理 Python 缓存文件 (`__pycache__`, `.pyc` 等) |
 | `.\generate_tree.bat` | 生成项目结构树并保存到 `tree.txt` |
 
