@@ -17,7 +17,6 @@ class GreetingResponse(BaseModel):
 
 # --- LLM Config Schemas ---
 class LLMConfigCreate(BaseModel):
-    # 修改：provider 使用 LLMProvider 枚举，api_key_name 改为 api_key
     provider: LLMProvider
     model_name: str
     api_key: str  # 改为 api_key

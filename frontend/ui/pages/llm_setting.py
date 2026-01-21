@@ -1,17 +1,18 @@
-# frontend/ui/pages/llm_models_setting.py
+# frontend/ui/pages/llm_setting.py
 import gradio as gr
-from frontend.handlers import llm_setting  # 导入 handlers 模块
-from shared.schemas import LLMProvider  # 导入枚举，用于类型检查和转换
-
+from frontend.handlers import llm_setting # 导入 handlers 模块
+from shared.schemas import LLMProvider # 导入枚举，用于类型检查和转换
 
 def create_llm_models_setting_ui(visible=True):
     with gr.Column(visible=visible) as llm_ui:
         gr.Markdown("### 🔧 Manage LLM Models")
 
+        # ui代码代码
+
         # ===== 添加区域 =====
         with gr.Accordion("➕ Add New LLM", open=False) as add_accordion:
             provider = gr.Dropdown(
-                choices=["OpenAI", "Ollama"],  # choices 与 LLMProvider 枚举值对应
+                choices=["OpenAI", "Ollama"], # choices 与 LLMProvider 枚举值对应
                 label="Provider",
                 interactive=True,
                 value=None
@@ -34,34 +35,20 @@ def create_llm_models_setting_ui(visible=True):
         # ===== 管理区域 =====
         gr.Markdown("### 📋 Existing LLM Configurations")
 
-        # 注意：这里使用真实的后端 API 获取列表，而不是 mock
-        # mock_configs = [
-        #     {"id": 1, "provider": "OpenAI", "model": "gpt-4o", "api_key": "sk-****1234", "status": "✅ Ready"},
-        #     {"id": 2, "provider": "Ollama", "model": "llama3", "api_key": "N/A", "status": "⚠️ Not tested"}
-        # ]
+        # 添加刷新按钮
+        refresh_btn = gr.Button("🔄 Refresh List", variant="secondary")
 
-        # 为了简化，这里仍使用静态展示，但按钮事件已关联
-        # 真实项目中，这里应通过 gr.update 动态刷新
-        with gr.Column(variant="panel"):
-            # 使用 Gradio 的 update 机制会更复杂，这里简化为静态展示
-            # 实际上，你需要一个刷新函数来更新这个列表
-            gr.Markdown("*(列表需要从后端动态加载，此处为示例)*")
-            with gr.Row():
-                gr.Textbox(value="Provider", interactive=False, min_width=80, container=False, show_label=False)
-                gr.Textbox(value="Model", interactive=False, min_width=120, container=False, show_label=False)
-                gr.Textbox(value="API Key (Masked)", interactive=False, min_width=120, container=False, show_label=False)
-                gr.Textbox(value="Status", interactive=False, min_width=100, container=False, show_label=False)
-                gr.Button("🟢 Test", size="sm", interactive=False) # 占位
-                gr.Button("🗑️ Delete", size="sm", interactive=False) # 占位
+        # 替换静态展示为动态 Dataframe
+        # 定义列标题，注意可能需要根据后端实际返回字段调整
+        llm_config_df = gr.Dataframe(
+            label="Current LLM Configurations",
+            headers=["ID", "Provider", "Model Name", "Base URL", "Created At", "Updated At"],
+            datatype=["number", "str", "str", "str", "str", "str"],
+            interactive=False, # 设置为非交互，只用于展示
+            elem_id="llm_config_table" # 可选：添加一个 ID 便于 CSS 定制或 JS 操作
+        )
 
-            # 示例行
-            with gr.Row():
-                gr.Textbox(value="OpenAI", interactive=False, min_width=80, container=False, show_label=False)
-                gr.Textbox(value="gpt-4o", interactive=False, min_width=120, container=False, show_label=False)
-                gr.Textbox(value="sk-****1234", interactive=False, min_width=120, container=False, show_label=False)
-                status_box_example = gr.Textbox(value="❓ Pending", interactive=False, min_width=100, container=False, show_label=False)
-                test_btn_example = gr.Button("🟢 Test", size="sm")
-                delete_btn_example = gr.Button("🗑️ Delete", size="sm")
+        # 控件绑定代码
 
         # ===== Provider 自动填充 Base URL =====
         def _on_provider_change(selected_provider, current_base_url):
@@ -89,26 +76,27 @@ def create_llm_models_setting_ui(visible=True):
                 api_key=key,
                 base_url=url
             )
+
             if success:
                 # 提交成功，清空表单并关闭 accordion
                 # 返回值为 (provider_update, model_update, api_key_update, base_url_update, result_update)
                 return (
-                    gr.update(value=None),  # 清空 provider
-                    gr.update(value=""),   # 清空 model_name
-                    gr.update(value=""),   # 清空 api_key
-                    gr.update(value=""),   # 清空 base_url
+                    gr.update(value=None), # 清空 provider
+                    gr.update(value=""), # 清空 model_name
+                    gr.update(value=""), # 清空 api_key
+                    gr.update(value=""), # 清空 base_url
                     gr.update(visible=True, value=f"✅ {message}"), # 显示成功消息
-                    gr.update(open=False)  # 关闭 accordion
+                    gr.update(open=False) # 关闭 accordion
                 )
             else:
                 # 提交失败，显示错误消息
                 return (
-                    gr.update(),  # 保持 provider 不变
-                    gr.update(),  # 保持 model_name 不变
-                    gr.update(),  # 保持 api_key 不变
-                    gr.update(),  # 保持 base_url 不变
+                    gr.update(), # 保持 provider 不变
+                    gr.update(), # 保持 model_name 不变
+                    gr.update(), # 保持 api_key 不变
+                    gr.update(), # 保持 base_url 不变
                     gr.update(visible=True, value=f"❌ {message}"), # 显示失败消息
-                    gr.update()   # 保持 accordion 状态不变
+                    gr.update() # 保持 accordion 状态不变
                 )
 
         submit_btn.click(
@@ -117,33 +105,44 @@ def create_llm_models_setting_ui(visible=True):
             outputs=[provider, model_name, api_key, base_url, submit_result, add_accordion] # 输出列表
         )
 
-        # ===== 行按钮事件关联 (示例) =====
-        # 注意：对于动态列表，需要更复杂的机制来处理每个按钮的事件
-        # 这里仅为示例行的按钮做演示
-        def on_test_click():
-            # 示例：测试 ID 为 1 的配置
-            message = llm_setting.test_existing_llm_config(config_id=1)
-            # 在实际应用中，你需要知道点击的是哪一行，可以通过一个隐藏的 ID 输入组件传递
-            # 或者，点击后刷新整个列表
-            return message
+        # ===== Refresh Button Event =====
+        def refresh_llm_configs():
+            # 调用 handlers 中的函数
+            success, data_or_error = llm_setting.get_all_llm_configs()
 
-        def on_delete_click():
-            # 示例：删除 ID 为 1 的配置
-            success = llm_setting.delete_llm_config(config_id=1)
-            # 在实际应用中，你需要知道点击的是哪一行
-            # 点击后通常需要刷新列表
-            return "✅ 删除成功" if success else "❌ 删除失败"
+            if success:
+                # 成功获取数据，将其格式化为 Dataframe 需要的格式 (列表的列表)
+                if isinstance(data_or_error, list) and len(data_or_error) > 0:
+                    # 提取所需字段并组织成行
+                    rows = []
+                    for config in data_or_error:
+                        # 确保字段名与后端返回的 JSON key 匹配
+                        row = [
+                            config.get('id'),
+                            config.get('provider'),
+                            config.get('model_name'),
+                            config.get('base_url'), # 如果为 None，gradio 会显示为 "(No Value)"
+                            config.get('created_at'),
+                            config.get('updated_at')
+                        ]
+                        rows.append(row)
+                    # 返回更新 Dataframe 的值
+                    return gr.update(value=rows)
+                else:
+                    # 成功但列表为空
+                    return gr.update(value=[])
+            else:
+                # 获取失败，返回空列表
+                # 也可以选择返回错误信息到 dataframe 或其他方式提示
+                # 这里选择返回空列表，并可能需要前端其他方式提示错误
+                print(f"Warning: Failed to load LLM configs: {data_or_error}") # For debugging, can be removed later
+                return gr.update(value=[])
 
-        # 这里只是将示例按钮关联到 handlers
-        test_btn_example.click(
-            fn=on_test_click,
+        # 绑定刷新按钮点击事件
+        refresh_btn.click(
+            fn=refresh_llm_configs,
             inputs=[],
-            outputs=[status_box_example] # 假设将结果显示在 status_box 上
-        )
-        delete_btn_example.click(
-            fn=on_delete_click,
-            inputs=[],
-            outputs=[] # 可能需要刷新整个列表组件
+            outputs=[llm_config_df]
         )
 
-    return llm_ui
+    return llm_ui, llm_config_df, refresh_btn 

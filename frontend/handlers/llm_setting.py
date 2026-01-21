@@ -86,3 +86,47 @@ def delete_llm_config(config_id: int) -> bool:
         return response.status_code == 200
     except Exception:
         return False
+    
+def get_all_llm_configs() -> tuple[bool, list | str]:
+    """
+    Handler function to fetch all LLM configurations from the backend API.
+
+    Returns:
+        tuple[bool, list | str]: A tuple where the first element indicates success,
+                                 and the second element is either the list of configurations
+                                 (if successful) or an error message string (if failed).
+    """
+    try:
+        # 发送 GET 请求到后端 API 端点
+        response = requests.get(
+            url="http://localhost:8000/api/settings/llm/",
+            timeout=30  # 设置请求超时时间为30秒
+        )
+
+        # 检查响应状态码
+        if response.status_code == 200:
+            # 请求成功，解析返回的 JSON 数据
+            configs_list = response.json()
+            # 返回成功标志和配置列表
+            return True, configs_list
+        else:
+            # 请求失败，尝试获取错误详情
+            try:
+                error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
+            except ValueError:
+                # 如果响应不是 JSON 格式，则直接使用状态码
+                error_detail = f"HTTP Error: {response.status_code}, Response Text: {response.text}"
+            return False, f"获取配置列表失败: {error_detail}"
+
+    except requests.exceptions.Timeout:
+        # 请求超时
+        return False, "请求超时，请检查网络或服务器状态。"
+    except requests.exceptions.ConnectionError:
+        # 无法连接到服务器
+        return False, "无法连接到后端服务器，请确认后端服务已启动。"
+    except requests.exceptions.RequestException as e:
+        # 其他请求相关的异常
+        return False, f"请求发生错误: {str(e)}"
+    except Exception as e:
+        # 捕获其他未预期的异常
+        return False, f"发生未知错误: {str(e)}"
