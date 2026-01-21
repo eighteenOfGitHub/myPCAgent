@@ -1,5 +1,3 @@
-
-
 # Your Agent Project — 技术文档（v0.2.x）
 
 ---
@@ -18,6 +16,11 @@
 ---
 
 ## 二、版本新增
+
+### v0.2.4
+
+- factor: shared中schemas的响应体模型按照api/endpoint拆分到shared下的不同文件，按照对应endpoint命名
+
 
 ### v0.2.3
 
@@ -41,6 +44,7 @@
 ## 三、项目结构
 
 ```
+.
 |   .gitignore
 |   clear_cache.py
 |   generate_tree.bat
@@ -146,11 +150,12 @@
 |               __init__.py
 |               
 \---shared
-        schemas.py
+        chat.py
+        greeting.py
+        llm_setting.py
         __init__.py
         
 
-  
 ```
 
 ## 四、技术选型与配置管理  
@@ -239,17 +244,17 @@ Your Agent Project 的启动流程涉及**后端 (FastAPI)** 和**前端 (Gradio
 
 ---
 
-你可以将以上内容直接复制到你的 `README.md` 文件中，替换原有的第三和第五部分。这能更准确地反映你当前项目的实际情况。
-
 ## 六、相关命令
 
+| 命令 | 说明 |
+|------|------|
+| `.\start.bat` | 启动后端 (FastAPI @ 8000) 和前端 (Gradio @ 7860)，推荐方式 |
+| `python clear_cache.py` | 清理 Python 缓存文件 (`__pycache__`, `.pyc` 等) |
+| `.\generate_tree.bat` | 生成项目结构树并保存到 `tree.txt` |
 
-
-> **运行**		双击运行 `start.bat`，或者在命令行/PowerShell 中执行 `.\start.bat`  
->
-> **清理缓存**	`python clear_cache.py`
->
-> **生成结构树**    `tree /F > tree.txt  `
+> **快速启动**：双击 `start.bat` 或在命令行执行 `.\start.bat`  
+> **清理缓存**：`python clear_cache.py`  
+> **生成结构树**：`.\generate_tree.bat`
 
 
 
