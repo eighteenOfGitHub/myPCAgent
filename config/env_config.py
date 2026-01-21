@@ -15,7 +15,7 @@ class EnvConfig(BaseModel):
     共享配置模型。
     """
     APP_VERSION: str = Field(
-        default="0.2.0",
+        default="0.2.x",
         description="应用版本号"
     )
     # 运行环境

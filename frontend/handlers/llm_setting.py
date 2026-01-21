@@ -1,21 +1,14 @@
-# frontend/handlers/llm_models_setting.py
-
 import requests
 from typing import Optional
 from shared.llm_setting import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
-
 
 def submit_new_llm_config(
     provider: LLMProvider,
     model_name: str,
     api_key: str | None,
     base_url: Optional[str] = None
-) -> tuple[bool, str]:  # 返回 (success, message)
-    """
-    Handler for 'Submit' button to save new LLM configuration.
-    Returns (True, "Success message") if successful.
-    Returns (False, "Error message") if failed.
-    """
+) -> tuple[bool, str]:
+    """Handler for 'Submit' button to save new LLM configuration."""
     if provider == LLMProvider.OLLAMA and api_key is None:
         api_key = ""
         
@@ -27,19 +20,17 @@ def submit_new_llm_config(
     )
 
     try:
-        # 调用后端 API：先测试连通性，成功则保存
         response = requests.post(
-            url="http://localhost:8000/api/settings/llm",  # 新增的 API 端点
-            json=config_data.model_dump(),  # 将 Pydantic 模型转为字典
-            timeout=30  # 设置超时时间
+            url="http://localhost:8000/api/settings/llm",
+            json=config_data.model_dump(),
+            timeout=30
         )
 
         if response.status_code == 200:
-            # 如果成功 (HTTP 200)，FastAPI 会返回 LLMConfig 的 JSON
-            saved_config: LLMConfigResponse = LLMConfigResponse.model_validate(response.json())
+            # 使用 LLMConfigResponse 验证响应
+            saved_config = LLMConfigResponse.model_validate(response.json())
             return True, f"模型 '{saved_config.model_name}' 配置已成功保存！"
         else:
-            # 处理 HTTP 错误，包括 400 Bad Request (测试失败或输入错误)
             error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
             return False, f"请求失败: {error_detail}"
 
@@ -47,24 +38,19 @@ def submit_new_llm_config(
         return False, "请求超时，请检查网络或服务器状态。"
     except requests.exceptions.ConnectionError:
         return False, "无法连接到后端服务器，请确认后端服务已启动。"
-    except requests.exceptions.RequestException as e:
-        return False, f"请求发生错误: {str(e)}"
     except Exception as e:
         return False, f"发生未知错误: {str(e)}"
 
-
 def test_existing_llm_config(config_id: int) -> str:
-    """
-    Handler for '🟢 Test' button on an existing config row.
-    Returns test result message.
-    """
+    """Handler for '🟢 Test' button on an existing config row."""
     try:
         response = requests.post(
-            url=f"http://localhost:8000/api/settings/llm/{config_id}/test",  # 测试现有配置的 API
+            url=f"http://localhost:8000/api/settings/llm/{config_id}/test",
             timeout=30
         )
         if response.status_code == 200:
-            result: LLMTestResponse = LLMTestResponse.model_validate(response.json())
+            # 使用 LLMTestResponse 验证响应
+            result = LLMTestResponse.model_validate(response.json())
             return result.message or ("测试通过" if result.success else "测试失败")
         else:
             error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
@@ -72,61 +58,46 @@ def test_existing_llm_config(config_id: int) -> str:
     except Exception as e:
         return f"测试时发生错误: {str(e)}"
 
-
 def delete_llm_config(config_id: int) -> bool:
-    """
-    Handler for '🗑️ Delete' button on an existing config row.
-    Returns True if deletion succeeded.
-    """
+    """Handler for '🗑️ Delete' button on an existing config row."""
     try:
         response = requests.delete(
             url=f"http://localhost:8000/api/settings/llm/{config_id}",
             timeout=10
         )
-        return response.status_code == 200
+        if response.status_code == 200:
+            # 虽然 MessageResponse 可选，但建议验证
+            from shared.schemas import MessageResponse
+            MessageResponse.model_validate(response.json())
+            return True
+        return False
     except Exception:
         return False
-    
-def get_all_llm_configs() -> tuple[bool, list | str]:
-    """
-    Handler function to fetch all LLM configurations from the backend API.
 
-    Returns:
-        tuple[bool, list | str]: A tuple where the first element indicates success,
-                                 and the second element is either the list of configurations
-                                 (if successful) or an error message string (if failed).
-    """
+def get_all_llm_configs() -> tuple[bool, list | str]:
+    """Handler function to fetch all LLM configurations from the backend API."""
     try:
-        # 发送 GET 请求到后端 API 端点
         response = requests.get(
             url="http://localhost:8000/api/settings/llm/",
-            timeout=30  # 设置请求超时时间为30秒
+            timeout=30
         )
 
-        # 检查响应状态码
         if response.status_code == 200:
-            # 请求成功，解析返回的 JSON 数据
-            configs_list = response.json()
-            # 返回成功标志和配置列表
-            return True, configs_list
+            # 使用 LLMConfigResponse 逐个验证列表中的配置
+            configs_list = [LLMConfigResponse.model_validate(cfg) for cfg in response.json()]
+            return True, [cfg.model_dump() for cfg in configs_list]
         else:
-            # 请求失败，尝试获取错误详情
             try:
                 error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
             except ValueError:
-                # 如果响应不是 JSON 格式，则直接使用状态码
                 error_detail = f"HTTP Error: {response.status_code}, Response Text: {response.text}"
             return False, f"获取配置列表失败: {error_detail}"
 
     except requests.exceptions.Timeout:
-        # 请求超时
         return False, "请求超时，请检查网络或服务器状态。"
     except requests.exceptions.ConnectionError:
-        # 无法连接到服务器
         return False, "无法连接到后端服务器，请确认后端服务已启动。"
     except requests.exceptions.RequestException as e:
-        # 其他请求相关的异常
         return False, f"请求发生错误: {str(e)}"
     except Exception as e:
-        # 捕获其他未预期的异常
         return False, f"发生未知错误: {str(e)}"

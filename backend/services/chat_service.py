@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 # from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 
-from shared.schemas import ChatTurnResponse
+from shared.chat import ChatTurnResponse
 from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
 from backend.services.llm_setting_service import LLMSettingService 
 from backend.core.database import get_session

@@ -1,12 +1,12 @@
-# frontend/handlers/chat_handler.py
 import requests
 import json
 from typing import Generator, Tuple, List, Any
 import gradio as gr
 
 from config.env_config import env_config
+from shared.chat import ChatSessionCreate, ChatSessionRead, ChatMessageRead, ChatTurnResponse
+from shared.schemas import MessageResponse
 
-# 后端 API 基础 URL
 API_BASE = f"http://{env_config.BACKEND_HOST}:{env_config.BACKEND_PORT}/api"
 
 def _handle_api_error(e: Exception) -> str:
@@ -25,8 +25,9 @@ def load_session_list() -> List[Tuple[str, int]]:
     try:
         resp = requests.get(f"{API_BASE}/chat/sessions", timeout=5)
         resp.raise_for_status()
-        sessions = resp.json()
-        return [(s.get("title") or f"会话 {s['id']}", s["id"]) for s in sessions]
+        # 使用 ChatSessionRead 验证响应格式
+        sessions = [ChatSessionRead.model_validate(s) for s in resp.json()]
+        return [(s.title or f"会话 {s.id}", s.id) for s in sessions]
     except Exception as e:
         print(f"加载会话列表失败: {e}")
         return []
@@ -34,57 +35,50 @@ def load_session_list() -> List[Tuple[str, int]]:
 def create_new_session() -> Tuple[Any, int, List, List]:
     """创建新会话"""
     try:
-        # 默认使用第一个 LLM 配置（你可根据需求调整）
         resp = requests.post(
             f"{API_BASE}/chat/sessions",
-            json={"title": "新会话", "config_id": 1},
+            json=ChatSessionCreate(title="新会话", config_id=1).model_dump(),
             timeout=10
         )
         resp.raise_for_status()
-        new_sess = resp.json()
+        # 使用 ChatSessionRead 验证响应
+        new_sess = ChatSessionRead.model_validate(resp.json())
         
-        # 刷新会话列表
         session_choices = load_session_list()
         
         return (
-            gr.Dropdown(choices=session_choices, value=new_sess["id"]),
-            new_sess["id"],
-            [],  # chat history state
-            []   # chatbot display
+            gr.Dropdown(choices=session_choices, value=new_sess.id),
+            new_sess.id,
+            [],
+            []
         )
     except Exception as e:
         error_msg = _handle_api_error(e)
-        return (
-            gr.Dropdown(),
-            None,
-            [],
-            [(error_msg, "")]
-        )
+        return (gr.Dropdown(), None, [], [(error_msg, "")])
 
 def load_messages(session_id: int) -> Tuple[List, List]:
     """加载指定会话的消息历史"""
-    if not session_id:
-        return [], []
-    
     try:
         resp = requests.get(f"{API_BASE}/chat/sessions/{session_id}/messages", timeout=5)
         resp.raise_for_status()
-        messages = resp.json()
+        # 使用 ChatMessageRead 验证响应
+        messages = [ChatMessageRead.model_validate(m) for m in resp.json()]
         
-        # 转换为 Gradio Chatbot 格式 [(user, bot), ...]
         history = []
-        user_msg = None
+        chat_display = []
         for msg in messages:
-            if msg["role"] == "user":
-                user_msg = msg["content"]
-            elif msg["role"] == "assistant" and user_msg is not None:
-                history.append((user_msg, msg["content"]))
-                user_msg = None
+            if msg.role == "user":
+                history.append((msg.content, ""))
+                chat_display.append((msg.content, ""))
+            elif msg.role == "assistant":
+                if history:
+                    history[-1] = (history[-1][0], msg.content)
+                chat_display.append(("", msg.content))
         
-        return history, history
+        return history, chat_display
     except Exception as e:
-        error_msg = _handle_api_error(e)
-        return [(error_msg, "")], [(error_msg, "")]
+        print(f"加载消息失败: {e}")
+        return [], []
 
 def stream_chat(session_id: int, user_message: str, history: List) -> Generator:
     """流式发送消息并生成响应"""
@@ -92,7 +86,6 @@ def stream_chat(session_id: int, user_message: str, history: List) -> Generator:
         yield [(f"[ERROR: 请先创建或选择一个会话]", "")]
         return
     
-    # 先显示用户消息
     history.append((user_message, ""))
     yield history
 

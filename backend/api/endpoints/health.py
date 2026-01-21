@@ -7,18 +7,19 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 from backend.core.database import engine
+from shared.schemas import HealthResponse
 
 # 创建此模块专用的路由器
 router = APIRouter(prefix="/health", tags=["Health"])
 
 
-@router.get("")
+@router.get("", response_model=HealthResponse)
 async def health_check():
     """
     健康检查端点。
 
     Returns:
-        dict: 包含服务状态和数据库连接状态的响应。
+        HealthResponse: 包含服务状态和数据库连接状态的响应。
     """
     try:
         # 尝试执行简单 SQL 查询验证数据库连接
@@ -28,8 +29,8 @@ async def health_check():
     except Exception as e:
         db_status = f"error: {str(e)}"
 
-    return {
-        "status": "healthy",
-        "service": "PCAgent Backend",
-        "database": db_status,
-    }
+    return HealthResponse(
+        status="healthy",
+        service="PCAgent Backend",
+        database=db_status,
+    )
