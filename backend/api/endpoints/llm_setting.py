@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import List, Optional
 from backend.services.llm_setting_service import LLMSettingService
 from backend.db_models.user_config import LLMConfig
-from shared.schemas import LLMConfigCreate, LLMConfigResponse
+from shared.llm_setting import LLMConfigCreate, LLMConfigResponse, LLMTestResponse
 
 router = APIRouter(prefix="/settings/llm", tags=["llm-setting"])
 
@@ -52,7 +52,7 @@ def create_llm_config(
         raise HTTPException(status_code=500, detail=f"创建 LLM 配置失败: {str(e)}")
 
 # --- 新增：测试现有配置接口 ---
-@router.post("/{config_id}/test") # 响应类型改为 str 或其他，或者创建一个专门的响应模型
+@router.post("/{config_id}/test", response_model=LLMTestResponse)  # 响应模型使用专用的 LLMTestResponse
 def test_existing_config(config_id: int):
     """
     测试一个已存在的 LLM 配置。

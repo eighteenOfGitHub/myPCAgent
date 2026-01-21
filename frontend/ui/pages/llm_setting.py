@@ -1,7 +1,7 @@
 # frontend/ui/pages/llm_setting.py
 import gradio as gr
 from frontend.handlers import llm_setting # 导入 handlers 模块
-from shared.schemas import LLMProvider # 导入枚举，用于类型检查和转换
+from shared.llm_setting import LLMProvider # 导入枚举，用于类型检查和转换
 
 def create_llm_models_setting_ui(visible=True):
     with gr.Column(visible=visible) as llm_ui:

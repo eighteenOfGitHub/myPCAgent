@@ -2,7 +2,7 @@
 
 import requests
 from typing import Optional
-from shared.schemas import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
+from shared.llm_setting import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
 
 
 def submit_new_llm_config(
