@@ -39,7 +39,7 @@ def create_llm_config(
         
         # 3. 测试成功且保存成功，返回保存的配置信息 (LLMConfig)
         # FastAPI 会自动将 LLMConfig 对象序列化为 JSON
-        return saved_config
+        return LLMConfigResponse.model_validate(saved_config, from_attributes=True)
 
     except HTTPException:
         # 如果是 HTTPException，直接抛出，FastAPI 会处理
@@ -82,24 +82,24 @@ def test_existing_config(config_id: int):
         raise HTTPException(status_code=500, detail=f"测试 LLM 配置失败: {str(e)}")
 
 # --- 保留原有的其他接口 ---
-@router.get("", response_model=List[LLMConfig])
+@router.get("", response_model=List[LLMConfigResponse])
 def list_llm_configs():
     """列出所有 LLM 配置（供前端下拉选择）"""
     service = LLMSettingService()
     try:
         configs = service.get_all()
-        return configs
+        return [LLMConfigResponse.model_validate(c, from_attributes=True) for c in configs]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取 LLM 配置列表失败: {str(e)}")
 
-@router.get("/{config_id}", response_model=LLMConfig)
+@router.get("/{config_id}", response_model=LLMConfigResponse)
 def get_llm_config(config_id: int):
     """获取指定 ID 的 LLM 配置"""
     service = LLMSettingService()
     config = service.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail="LLM 配置不存在")
-    return config
+    return LLMConfigResponse.model_validate(config, from_attributes=True)
 
 @router.delete("/{config_id}")
 def delete_llm_config(config_id: int):
