@@ -21,11 +21,8 @@ class TextFormatter(logging.Formatter):
 class JsonFormatter(jsonlogger.JsonFormatter):
     """自定义 JSON 格式化器，使用配置文件中的字段定义"""
     def __init__(self, fmt_params, *args, **kwargs):
-        # 将配置中的字段映射拼接成字符串传递给 jsonlogger
         fmt_string = " ".join([f"%({param})s" for param in fmt_params])
-        # 关键：设置 datefmt 为 None，避免 asctime 问题
-        # 并设置 style='%' 以匹配 fmt_string 的格式
-        super().__init__(fmt_string, datefmt=None, style='%', *args, **kwargs)
+        super().__init__(fmt_string, datefmt=None, style='%', json_ensure_ascii=False, *args, **kwargs)
 
 def setup_logging():
     """
