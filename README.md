@@ -275,6 +275,4 @@ Your Agent Project 的启动流程涉及**后端 (FastAPI)** 和**前端 (Gradio
 ## 六、监控与运维
 - 数据库查看：推荐使用 **DBeaver**（跨平台，支持 SQLite/MySQL/PostgreSQL 等），可直观浏览表结构与数据。
 - 日志查看（app.log）：可用命令行实时查看（Linux/Mac：`tail -f backend/logs/app.log`，Windows PowerShell：`Get-Content backend/logs/app.log -Wait`），或使用日志查看工具（如 lnav/BareTail/IDE 内置 Log Viewer）
-
-
-
+- 
