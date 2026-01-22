@@ -24,6 +24,11 @@ class LLMConfigResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class LLMConfigBasicResponse(BaseModel):
+    id: int
+    provider: LLMProvider
+    model_name: str
+
 class LLMTestResponse(BaseModel):
     success: bool
     message: Optional[str] = None

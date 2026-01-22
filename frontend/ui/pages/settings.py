@@ -1,6 +1,6 @@
 # frontend/ui/pages/settings.py
 import gradio as gr
-from .general_setting import create_general_setting_ui
+from .preference_setting import create_preference_setting_ui
 from .llm_setting import create_llm_models_setting_ui
 
 
@@ -14,7 +14,7 @@ def render():
 
         # 右侧内容区
         with gr.Column(scale=3):
-            general_ui = create_general_setting_ui(visible=True)
+            preference_ui = create_preference_setting_ui(visible=True)
             llm_ui, llm_config_df, refresh_btn  = create_llm_models_setting_ui(visible=False)
 
             # 切换逻辑：控制可见性
@@ -24,7 +24,7 @@ def render():
             def show_llm():
                 return gr.update(visible=False), gr.update(visible=True)
 
-            general_btn.click(show_general, outputs=[general_ui, llm_ui])
-            llm_btn.click(show_llm, outputs=[general_ui, llm_ui])
+            general_btn.click(show_general, outputs=[preference_ui, llm_ui])
+            llm_btn.click(show_llm, outputs=[preference_ui, llm_ui])
 
-    return [general_btn, llm_btn, general_ui, llm_ui, llm_config_df]
+    return [general_btn, llm_btn, preference_ui, llm_ui, llm_config_df]

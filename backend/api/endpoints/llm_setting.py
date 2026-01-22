@@ -1,10 +1,14 @@
 # backend/api/endpoints/llm_setting.py
 
-from fastapi import APIRouter, HTTPException, Body
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException
+from typing import List
 from backend.services.llm_setting_service import LLMSettingService
-from backend.db_models.user_config import LLMConfig
-from shared.llm_setting import LLMConfigCreate, LLMConfigResponse, LLMTestResponse
+from shared.llm_setting import (
+    LLMConfigCreate,
+    LLMConfigResponse,
+    LLMConfigBasicResponse,
+    LLMTestResponse,
+)
 
 router = APIRouter(prefix="/settings/llm", tags=["llm-setting"])
 
@@ -84,13 +88,22 @@ def test_existing_config(config_id: int):
 # --- 保留原有的其他接口 ---
 @router.get("", response_model=List[LLMConfigResponse])
 def list_llm_configs():
-    """列出所有 LLM 配置（供前端下拉选择）"""
+    """列出所有 LLM 配置"""
     service = LLMSettingService()
     try:
         configs = service.get_all()
         return [LLMConfigResponse.model_validate(c, from_attributes=True) for c in configs]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取 LLM 配置列表失败: {str(e)}")
+
+@router.get("/basic", response_model=List[LLMConfigBasicResponse])
+def list_basic_llm_configs():
+    """仅返回基础字段（id/provider/model_name），用于下拉选择。"""
+    service = LLMSettingService()
+    try:
+        return service.list_basic_configs()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取 LLM 基础配置失败: {str(e)}")
 
 @router.get("/{config_id}", response_model=LLMConfigResponse)
 def get_llm_config(config_id: int):

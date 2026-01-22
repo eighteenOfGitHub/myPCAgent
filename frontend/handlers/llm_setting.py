@@ -1,7 +1,6 @@
 import requests
 from typing import Optional
 from shared.llm_setting import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
-from shared.crypto import encrypt_text
 
 def submit_new_llm_config(
     provider: LLMProvider,
@@ -12,12 +11,11 @@ def submit_new_llm_config(
     """Handler for 'Submit' button to save new LLM configuration."""
     if provider == LLMProvider.OLLAMA and api_key is None:
         api_key = ""
-    encrypted_api_key = encrypt_text(api_key)
         
     config_data = LLMConfigCreate(
         provider=provider,
         model_name=model_name,
-        api_key=encrypted_api_key,
+        api_key=api_key,
         base_url=base_url
     )
 
@@ -25,7 +23,7 @@ def submit_new_llm_config(
         response = requests.post(
             url="http://localhost:8000/api/settings/llm",
             json=config_data.model_dump(),
-            timeout=60
+            timeout=30
         )
 
         if response.status_code == 200:

@@ -95,22 +95,24 @@ class LLMSettingService:
                 logger.debug("LLM configuration not found for config_id=%d", config_id)
             return config
 
+    def list_basic_configs(self) -> List[Dict[str, Any]]:
+        """供前端下拉选择：仅返回 id / provider / model_name"""
+        with get_db_session() as session:
+            rows = session.exec(
+                select(LLMConfig.id, LLMConfig.provider, LLMConfig.model_name)
+            ).all()
+            logger.debug("Retrieved basic LLM configurations. Count: %d", len(rows))
+            return [
+                {"id": row[0], "provider": row[1], "model_name": row[2]}
+                for row in rows
+            ]
+
     def get_all(self) -> List[LLMConfig]:
-        """ 获取所有 LLM 配置（供前端下拉选择） """
+        """获取所有 LLM 配置（完整字段）"""
         with get_db_session() as session:
             configs = session.exec(select(LLMConfig)).all()
             logger.debug("Retrieved all LLM configurations. Count: %d", len(configs))
             return configs
-
-    def get_active(self) -> LLMConfig:
-        """ 获取当前活跃配置（约定使用 ID=1） """
-        config = self.get_by_id(1)
-        if not config:
-            error_msg = "尚未配置默认 LLM（ID=1），请先创建一个配置"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-        logger.debug("Active LLM configuration retrieved. config_id=1, provider=%s, model_name=%s", config.provider, config.model_name)
-        return config
 
     def delete(self, config_id: int) -> bool:
         """ 删除指定配置 """
