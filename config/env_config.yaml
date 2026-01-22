@@ -2,7 +2,7 @@ ALLOWED_API_ORIGINS:
 - http://localhost:7860
 - http://127.0.0.1:7860
 API_BASE_URL: http://localhost:8000/api
-APP_VERSION: 0.2.2
+APP_VERSION: 0.2.x
 BACKEND_HOST: 127.0.0.1
 BACKEND_PORT: 8000
 FERNET_KEY: scv0wcvX1TjdOoWbeoXksIEOk_WXIv9_rp3L3tll8Ko=
