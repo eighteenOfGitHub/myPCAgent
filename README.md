@@ -17,6 +17,13 @@
 
 ## 二、版本新增
 
+### v0.2.6
+
+- feat：默认下拉框内容功能获取实现
+- feat：下拉框刷新实现
+- feat：（未实现）加载下拉框默认
+- feat：（未实现）保存默认设置
+
 ### v0.2.5
 - feat: 前端提交 LLM 配置前使用 Fernet 对 api_key 加密（shared/crypto）
 - feat: 后端 LLMSettingService 解密后调用，数据库存密文
@@ -117,6 +124,7 @@
 |   |   +---services
 |   |   \---sys
 |   |           AI编程规范.md
+|   |           前端服务（gradio）开发规范与流程速查手册.md
 |   |           后端服务开发规范与流程速查手册.md
 |   |           日志系统开发规范文档.md
 |   |           
@@ -140,6 +148,7 @@
 |   |       chat.py
 |   |       dashboard.py
 |   |       llm_setting.py
+|   |       preference_setting.py
 |   |       
 |   \---ui
 |       |   main_layout.py
@@ -148,8 +157,8 @@
 |               agent.py
 |               chat.py
 |               dashboard.py
-|               general_setting.py
 |               llm_setting.py
+|               preference_setting.py
 |               settings.py
 |               __init__.py
 |               
