@@ -17,17 +17,20 @@
 
 ## 二、版本新增
 
-### v0.2.4
+### v0.2.5
+- feat: 前端提交 LLM 配置前使用 Fernet 对 api_key 加密（shared/crypto）
+- feat: 后端 LLMSettingService 解密后调用，数据库存密文
+- chore: EnvConfig 缺失 FERNET_KEY 时自动生成并写回 env_config.yaml，确保前后端同钥
+- docs: 补充 EnvConfig 与监控/运维说明
 
+### v0.2.4
 - refactor: shared中schemas的响应体模型按照api/endpoint拆分到shared下的不同文件，按照对应endpoint命名
 - refactor: 移除热重载功能，简化启动流程
 
 ### v0.2.3
-
 - feat: 设置页面显示已保存模型
 
 ### v0.2.2
-
 - bulid: 日志系统
 - faet: 前端分页
 - feat: 添加大模型配置
@@ -152,6 +155,7 @@
 |               
 \---shared
         chat.py
+        crypto.py
         greeting.py
         llm_setting.py
         schemas.py
@@ -177,6 +181,13 @@
 | **版本控制** | 语义化版本（SemVer） | `vx.x.x` | ✅ `VERSION` 文件 + `env_config.yaml` 声明版本<br>✅ 数据库 Schema 版本独立管理（用于迁移） |
 | **代码风格** | Black + isort | — | ✅ 自动格式化，保证代码一致性（建议加入 CI） |
 | **可选：打包/分发** | PyInstaller / Docker | — | ✅ 未来可打包为单文件 EXE 或容器镜像 |
+
+---
+
+### EnvConfig
+- 文件：`config/env_config.py` / `config/env_config.yaml`。
+- 作用：集中管理前后端共享参数（如主机端口、API 基础地址、CORS 源）。
+- 安全：包含 `FERNET_KEY`（对称密钥），用于前后端加解密；缺失时自动生成并写回 YAML，需确保前后端读取同一份密钥。（建议重新生成）
 
 ---
 
@@ -260,6 +271,10 @@ Your Agent Project 的启动流程涉及**后端 (FastAPI)** 和**前端 (Gradio
 > **快速启动**：双击 `start.bat` 或在命令行执行 `.\start.bat`  
 > **清理缓存**：`python clear_cache.py`  
 > **生成结构树**：`.\generate_tree.bat`
+
+## 六、监控与运维
+- 数据库查看：推荐使用 **DBeaver**（跨平台，支持 SQLite/MySQL/PostgreSQL 等），可直观浏览表结构与数据。
+- 日志查看（app.log）：可用命令行实时查看（Linux/Mac：`tail -f backend/logs/app.log`，Windows PowerShell：`Get-Content backend/logs/app.log -Wait`），或使用日志查看工具（如 lnav/BareTail/IDE 内置 Log Viewer）
 
 
 
