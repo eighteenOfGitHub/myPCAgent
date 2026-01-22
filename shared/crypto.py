@@ -1,3 +1,4 @@
+# shared/crypto.py
 from cryptography.fernet import Fernet, InvalidToken
 from config.env_config import env_config
 
