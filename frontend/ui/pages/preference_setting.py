@@ -3,6 +3,7 @@ import gradio as gr
 from frontend.handlers.preference_setting import (
     fetch_llm_basic_options,
     fetch_default_llm_config_id,
+    set_default_llm_config,
 )
 
 def create_preference_setting_ui(visible: bool = True):
@@ -49,9 +50,10 @@ def create_preference_setting_ui(visible: bool = True):
             return gr.update(choices=choices, value=selected)
 
         def on_save(default_llm_id):
-            if default_llm_id is None:
-                return gr.update(value="Please select a model", visible=True)
-            return gr.update(value="Saved locally (TODO: persist via API)", visible=True)
+            success, msg, _ = set_default_llm_config(default_llm_id)
+            if not success:
+                return gr.update(value=f"❌ {msg}", visible=True)
+            return gr.update(value="✅ Saved default model.", visible=True)
 
         refresh_btn.click(fn=on_refresh, inputs=default_llm_dropdown, outputs=default_llm_dropdown)
         save_btn.click(fn=on_save, inputs=default_llm_dropdown, outputs=status_text)
