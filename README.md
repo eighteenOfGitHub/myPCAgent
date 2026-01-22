@@ -17,12 +17,16 @@
 
 ## 二、版本新增
 
-### v0.2.6
+### v0.2.7
+- feat：（未实现）切换页面自动刷新
+- factor：（未实现）代码文件名加上功能后缀（例如：ui/user.py -> ui/user_ui.py）
+- factor：（未实现）统一后端路由获取路径（来源env_config），并将要求写入前端ai开发规范中
 
+### v0.2.6
 - feat：默认下拉框内容功能获取实现
 - feat：下拉框刷新实现
 - feat：加载下拉框默认
-- feat：（未实现）保存默认设置
+- feat：保存默认设置
 
 ### v0.2.5
 - feat: 前端提交 LLM 配置前使用 Fernet 对 api_key 加密（shared/crypto）
