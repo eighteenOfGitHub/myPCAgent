@@ -9,6 +9,7 @@ import yaml
 from pathlib import Path
 from typing import List
 from pydantic import BaseModel, Field
+from cryptography.fernet import Fernet
 
 class EnvConfig(BaseModel):
     """
@@ -51,6 +52,11 @@ class EnvConfig(BaseModel):
         default=[f"http://localhost:{FRONTEND_PORT}", f"http://{FRONTEND_HOST}:{FRONTEND_PORT}"],
         description="允许访问后端 API 的前端源列表"
     )
+    # --- 加密相关 ---
+    FERNET_KEY: str = Field(
+        default_factory=lambda: Fernet.generate_key().decode("utf-8"),
+        description="Fernet 密钥，用于加解密"
+    )
 
 
 def load_env_config_from_yaml(yaml_path: Path) -> EnvConfig:
@@ -66,7 +72,14 @@ def load_env_config_from_yaml(yaml_path: Path) -> EnvConfig:
     try:
         with open(yaml_path, 'r', encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
-            return EnvConfig(**config_data)
+        if not config_data.get("FERNET_KEY"):
+            generated_key = Fernet.generate_key().decode("utf-8")
+            config_data["FERNET_KEY"] = generated_key
+            try:
+                yaml_path.write_text(yaml.safe_dump(config_data, allow_unicode=True), encoding="utf-8")
+            except Exception as e:
+                print(f"警告: 写回 Fernet 密钥到 {yaml_path} 失败: {e}")
+        return EnvConfig(**config_data)
     except FileNotFoundError:
         print(f"警告: 未找到共享配置文件 {yaml_path}，将使用默认值。")
         return EnvConfig()

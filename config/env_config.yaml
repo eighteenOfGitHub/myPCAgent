@@ -1,15 +1,11 @@
-# config/env_config.yaml
-# 项目共享配置文件
-
-RUN_ENV: "development" # (development, production)
-APP_VERSION: "0.2.2"
-
-API_BASE_URL: "http://localhost:8000/api"
 ALLOWED_API_ORIGINS:
-  - "http://localhost:7860"
-  - "http://127.0.0.1:7860"
-
-BACKEND_HOST: "127.0.0.1"
+- http://localhost:7860
+- http://127.0.0.1:7860
+API_BASE_URL: http://localhost:8000/api
+APP_VERSION: 0.2.2
+BACKEND_HOST: 127.0.0.1
 BACKEND_PORT: 8000
-FRONTEND_HOST: "127.0.0.1"
+FERNET_KEY: scv0wcvX1TjdOoWbeoXksIEOk_WXIv9_rp3L3tll8Ko=
+FRONTEND_HOST: 127.0.0.1
 FRONTEND_PORT: 7860
+RUN_ENV: development

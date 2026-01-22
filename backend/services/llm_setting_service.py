@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
+from shared.crypto import decrypt_text
 
 from backend.core.database import get_db_session
 from backend.db_models.user_config import LLMConfig
@@ -55,12 +56,19 @@ class LLMSettingService:
             real_api_key = api_key_input
             logger.debug("Ollama provider detected, skipping API key resolution.")
         else:
-            real_api_key = self._resolve_api_key(api_key_input)
+            decrypted_api_key = decrypt_text(api_key_input)
+            if not decrypted_api_key and provider.lower() != "ollama":
+                raise ValueError("API Key 不能为空")
+            real_api_key = (
+                self._resolve_api_key(decrypted_api_key)
+                if decrypted_api_key
+                else decrypted_api_key
+            )
 
         config = LLMConfig(
             provider=provider.strip(),
             model_name=model_name.strip(),
-            api_key=real_api_key, # 可能是解析后的值，也可能是空字符串或 None
+            api_key=api_key_input,  # store ciphertext
             base_url=base_url.strip() if base_url else None,
         )
         
@@ -139,7 +147,14 @@ class LLMSettingService:
             if not api_key_input and provider.lower() == "ollama":
                 real_api_key = api_key_input
             else:
-                real_api_key = self._resolve_api_key(api_key_input)
+                decrypted_api_key = decrypt_text(api_key_input)
+                if not decrypted_api_key and provider.lower() != "ollama":
+                    raise ValueError("API Key 不能为空")
+                real_api_key = (
+                    self._resolve_api_key(decrypted_api_key)
+                    if decrypted_api_key
+                    else decrypted_api_key
+                )
 
             # 2. 根据 provider 创建对应的 LLM 实例
             llm: Optional[BaseLanguageModel] = None
