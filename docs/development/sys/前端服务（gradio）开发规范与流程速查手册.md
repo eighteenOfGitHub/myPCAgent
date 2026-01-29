@@ -76,6 +76,26 @@ refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 - 返回值约定：handler 返回 (success: bool, data_or_error: Any)。
 - 异常处理：页面层不抛异常，降级为空数据 + 控制台警告；必要时在 UI 显示提示文本。
 
+### 6.1 API 路由统一获取（重要）
+- **来源唯一**：所有 handler 必须从 `config.env_config.env_config` 获取 `API_BASE_URL`，避免硬编码 URL。
+- **初始化方式**：在 handler 模块顶部声明：
+  ```python
+  from config.env_config import env_config
+  
+  # 重要过程：从 env_config 统一获取 API 基址
+  API_BASE = env_config.API_BASE_URL
+  ```
+- **使用方式**：所有请求使用 `f"{API_BASE}/endpoint"` 格式。
+- **环境切换**：若需切换 API 地址（开发/生产），仅在 `config/env_config.yaml` 修改 `API_BASE_URL` 字段，无需改动代码。
+- **示例**：
+  ```python
+  # ❌ 错误：硬编码
+  response = requests.get("http://localhost:8000/api/settings/llm/")
+  
+  # ✅ 正确：动态获取
+  response = requests.get(f"{API_BASE}/settings/llm/")
+  ```
+
 七、状态管理
 - 临时态：gr.State 存放当前选择或分页偏移等页面状态。
 - 会话态：谨慎使用全局变量；优先以显式输入输出传递。
@@ -144,3 +164,4 @@ refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 - 与后端字段是否一致（headers/keys 对齐 shared 模型）？
 - 是否避免打印敏感信息？
 - 刷新逻辑是否健壮（失败降级为空列表）？
+- **✅ API 路由是否统一获取（来源 env_config，无硬编码）？**
