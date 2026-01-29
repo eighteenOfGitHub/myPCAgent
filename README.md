@@ -21,7 +21,7 @@
 - feat：设置页面加载时数据自动加载
 - fix: api_key传输前加密功能缺失，已补齐
 - factor：代码文件名加上功能后缀（例如：ui/user.py -> ui/user_ui.py）
-- factor：（未实现）统一后端路由获取路径（来源env_config），并将要求写入前端ai开发规范中
+- factor：统一后端路由获取路径（来源env_config），并将要求写入前端ai开发规范中
 
 ### v0.2.6
 - feat：默认下拉框内容功能获取实现
