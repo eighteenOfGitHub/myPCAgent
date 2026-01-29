@@ -1,10 +1,12 @@
 import os
 from typing import List, Tuple, Optional
 import requests
+from config.env_config import env_config
 from shared.llm_setting_schemas import LLMConfigBasicResponse
 from shared.user_preference_schemas import UserPreferenceResponse, SetDefaultLLMResponse
 
-API_BASE = os.getenv("BACKEND_API_BASE", "http://127.0.0.1:8000/api")
+# 重要过程：从 env_config 统一获取 API 基址
+API_BASE = env_config.API_BASE_URL
 LLM_BASIC_ENDPOINT = f"{API_BASE}/settings/llm/basic"
 USER_PREF_ENDPOINT = f"{API_BASE}/preference"
 

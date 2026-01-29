@@ -1,7 +1,11 @@
 import requests
 from typing import Optional
+from config.env_config import env_config
 from shared.llm_setting_schemas import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
 from shared.crypto import encrypt_text, decrypt_text
+
+# 重要过程：从 env_config 统一获取 API 基址
+API_BASE = env_config.API_BASE_URL
 
 def submit_new_llm_config(
     provider: LLMProvider,
@@ -19,19 +23,18 @@ def submit_new_llm_config(
     config_data = LLMConfigCreate(
         provider=provider,
         model_name=model_name,
-        api_key=encrypted_api_key,  # 发送加密后的密钥
+        api_key=encrypted_api_key,
         base_url=base_url
     )
 
     try:
         response = requests.post(
-            url="http://localhost:8000/api/settings/llm",
+            url=f"{API_BASE}/settings/llm",
             json=config_data.model_dump(),
             timeout=30
         )
 
         if response.status_code == 200:
-            # 使用 LLMConfigResponse 验证响应
             saved_config = LLMConfigResponse.model_validate(response.json())
             return True, f"模型 '{saved_config.model_name}' 配置已成功保存！"
         else:
@@ -49,7 +52,7 @@ def test_existing_llm_config(config_id: int) -> str:
     """Handler for '🟢 Test' button on an existing config row."""
     try:
         response = requests.post(
-            url=f"http://localhost:8000/api/settings/llm/{config_id}/test",
+            url=f"{API_BASE}/settings/llm/{config_id}/test",
             timeout=30
         )
         if response.status_code == 200:
@@ -65,7 +68,7 @@ def delete_llm_config(config_id: int) -> bool:
     """Handler for '🗑️ Delete' button on an existing config row."""
     try:
         response = requests.delete(
-            url=f"http://localhost:8000/api/settings/llm/{config_id}",
+            url=f"{API_BASE}/settings/llm/{config_id}",
             timeout=10
         )
         if response.status_code == 200:
@@ -80,12 +83,11 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
     """Handler function to fetch all LLM configurations from the backend API."""
     try:
         response = requests.get(
-            url="http://localhost:8000/api/settings/llm/",
+            url=f"{API_BASE}/settings/llm/",
             timeout=30
         )
 
         if response.status_code == 200:
-            # 使用 LLMConfigResponse 逐个验证列表中的配置
             configs_list = [LLMConfigResponse.model_validate(cfg) for cfg in response.json()]
             return True, [cfg.model_dump() for cfg in configs_list]
         else:

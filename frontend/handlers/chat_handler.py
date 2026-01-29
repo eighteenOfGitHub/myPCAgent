@@ -7,7 +7,8 @@ from config.env_config import env_config
 from shared.chat_schemas import ChatSessionCreate, ChatSessionRead, ChatMessageRead, ChatTurnResponse
 from shared.general_schemas import MessageResponse
 
-API_BASE = f"http://{env_config.BACKEND_HOST}:{env_config.BACKEND_PORT}/api"
+# 重要过程：从 env_config 统一获取 API 基址
+API_BASE = env_config.API_BASE_URL
 
 def _handle_api_error(e: Exception) -> str:
     """统一错误处理"""
