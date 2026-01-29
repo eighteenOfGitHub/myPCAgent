@@ -1,44 +1,14 @@
 # frontend/ui/pages/llm_setting.py
 import gradio as gr
-from frontend.handlers import llm_setting # 导入 handlers 模块
-from shared.llm_setting import LLMProvider # 导入枚举，用于类型检查和转换
+from frontend.handlers import llm_setting
+from shared.llm_setting import LLMProvider
 
 def create_llm_models_setting_ui(visible=True):
     with gr.Column(visible=visible) as llm_ui:
-        gr.Markdown("### 🔧 Manage LLM Models")
 
-        # ui代码代码
+        # ===== 表格区域（最前面） =====
+        gr.Markdown("## 📋 LLM Configurations")
 
-        # ===== 添加区域 =====
-        with gr.Accordion("➕ Add New LLM", open=False) as add_accordion:
-            provider = gr.Dropdown(
-                choices=["OpenAI", "Ollama"], # choices 与 LLMProvider 枚举值对应
-                label="Provider",
-                interactive=True,
-                value=None
-            )
-            model_name = gr.Textbox(label="Model Name", placeholder="e.g., gpt-4o, llama3")
-            api_key = gr.Textbox(label="API Key", type="password")
-            base_url = gr.Textbox(
-                label="Base URL (Optional)",
-                placeholder="e.g., http://localhost:11434 for Ollama"
-            )
-            # 用于显示提交结果的消息
-            submit_result = gr.Textbox(label="Result", interactive=False, visible=False)
-
-            # Submit 按钮右下角
-            with gr.Row():
-                gr.Column(scale=8)
-                with gr.Column(scale=2, min_width=120):
-                    submit_btn = gr.Button("✅ Submit", variant="primary", size="sm")
-
-        # ===== 管理区域 =====
-        gr.Markdown("### 📋 Existing LLM Configurations")
-
-        # 添加刷新按钮
-        refresh_btn = gr.Button("🔄 Refresh List", variant="secondary")
-
-        # --- 新增：首次加载时初始化表格数据 ---
         def _initial_rows():
             success, data_or_error = llm_setting.get_all_llm_configs()
             if success and isinstance(data_or_error, list):
@@ -56,18 +26,43 @@ def create_llm_models_setting_ui(visible=True):
             return []
 
         llm_config_df = gr.Dataframe(
-            label="Current LLM Configurations",
             headers=["ID", "Provider", "Model Name", "Base URL", "Created At", "Updated At"],
             datatype=["number", "str", "str", "str", "str", "str"],
-            interactive=False, # 设置为非交互，只用于展示
-            elem_id="llm_config_table", # 可选：添加一个 ID 便于 CSS 定制或 JS 操作
-            value=_initial_rows(), # 初始化表格
+            interactive=False,
+            elem_id="llm_config_table",
+            value=_initial_rows(),
             wrap=True,
         )
 
-        # 控件绑定代码
+        # ===== 刷新按钮（右侧） =====
+        with gr.Row():
+            gr.Column(scale=4)  # 左侧空白
+            with gr.Column(scale=1, min_width=100):
+                refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
 
-        # ===== Provider 自动填充 Base URL =====
+        # ===== 添加区域（下一行，占满宽度） =====
+        gr.Markdown("## ➕ Add New LLM Configuration")
+        with gr.Accordion("Fill out the form", open=False) as add_accordion:
+            provider = gr.Dropdown(
+                choices=["OpenAI", "Ollama"],
+                label="Provider",
+                interactive=True,
+                value=None
+            )
+            model_name = gr.Textbox(label="Model Name", placeholder="e.g., gpt-4o, llama3")
+            api_key = gr.Textbox(label="API Key", type="password")
+            base_url = gr.Textbox(
+                label="Base URL (Optional)",
+                placeholder="e.g., http://localhost:11434 for Ollama"
+            )
+            submit_result = gr.Textbox(label="Result", interactive=False, visible=False)
+
+            with gr.Row():
+                gr.Column(scale=8)
+                with gr.Column(scale=2, min_width=120):
+                    submit_btn = gr.Button("✅ Submit", variant="primary", size="sm")
+
+        # ===== 控件绑定代码 =====
         def _on_provider_change(selected_provider, current_base_url):
             if selected_provider == "Ollama" and (not current_base_url or current_base_url.strip() == ""):
                 return gr.update(value="http://localhost:11434")
@@ -79,13 +74,39 @@ def create_llm_models_setting_ui(visible=True):
             outputs=base_url
         )
 
-        # ===== Submit 事件关联 =====
+        def _refresh_llm_configs():
+            # 重要过程：刷新表格数据，返回 Dataframe 的更新值
+            success, data_or_error = llm_setting.get_all_llm_configs()
+            if success and isinstance(data_or_error, list) and len(data_or_error) > 0:
+                rows = []
+                for config in data_or_error:
+                    row = [
+                        config.get('id'),
+                        config.get('provider'),
+                        config.get('model_name'),
+                        config.get('base_url'),
+                        config.get('created_at'),
+                        config.get('updated_at')
+                    ]
+                    rows.append(row)
+                return gr.update(value=rows)
+            else:
+                return gr.update(value=[])
+
         def on_submit(provider_val, model, key, url):
-            # 确保 provider_val 是 LLMProvider 枚举中的值
+            # 重要过程：提交表单并获得结果
             try:
                 provider_enum = LLMProvider(provider_val)
             except ValueError:
-                return gr.update(visible=True, value=f"❌ 无效的 Provider: {provider_val}")
+                return (
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(visible=True, value=f"❌ 无效的 Provider: {provider_val}"),
+                    gr.update(),
+                    gr.update()
+                )
 
             success, message = llm_setting.submit_new_llm_config(
                 provider=provider_enum,
@@ -95,69 +116,47 @@ def create_llm_models_setting_ui(visible=True):
             )
 
             if success:
-                # 提交成功，清空表单并关闭 accordion
-                # 返回值为 (provider_update, model_update, api_key_update, base_url_update, result_update)
+                updated_df = _refresh_llm_configs()
                 return (
-                    gr.update(value=None), # 清空 provider
-                    gr.update(value=""), # 清空 model_name
-                    gr.update(value=""), # 清空 api_key
-                    gr.update(value=""), # 清空 base_url
-                    gr.update(visible=True, value=f"✅ {message}"), # 显示成功消息
-                    gr.update(open=False) # 关闭 accordion
+                    gr.update(value=None),
+                    gr.update(value=""),
+                    gr.update(value=""),
+                    gr.update(value=""),
+                    gr.update(visible=True, value=f"✅ {message}"),
+                    gr.update(open=False),
+                    updated_df
                 )
             else:
-                # 提交失败，显示错误消息
                 return (
-                    gr.update(), # 保持 provider 不变
-                    gr.update(), # 保持 model_name 不变
-                    gr.update(), # 保持 api_key 不变
-                    gr.update(), # 保持 base_url 不变
-                    gr.update(visible=True, value=f"❌ {message}"), # 显示失败消息
-                    gr.update() # 保持 accordion 状态不变
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(),
+                    gr.update(visible=True, value=f"❌ {message}"),
+                    gr.update(),
+                    gr.update()
                 )
+
+        def _delayed_close_accordion():
+            # 重要过程：延迟 3 秒后关闭 Accordion
+            import time
+            time.sleep(3)
+            return gr.update(open=False)
 
         submit_btn.click(
             fn=on_submit,
             inputs=[provider, model_name, api_key, base_url],
-            outputs=[provider, model_name, api_key, base_url, submit_result, add_accordion] # 输出列表
+            outputs=[provider, model_name, api_key, base_url, submit_result, add_accordion, llm_config_df]
+        ).then(
+            fn=_delayed_close_accordion,
+            inputs=[],
+            outputs=[add_accordion],
+            show_progress="hidden"
         )
 
-        # ===== Refresh Button Event =====
-        def refresh_llm_configs():
-            # 调用 handlers 中的函数
-            success, data_or_error = llm_setting.get_all_llm_configs()
-
-            if success:
-                # 成功获取数据，将其格式化为 Dataframe 需要的格式 (列表的列表)
-                if isinstance(data_or_error, list) and len(data_or_error) > 0:
-                    # 提取所需字段并组织成行
-                    rows = []
-                    for config in data_or_error:
-                        # 确保字段名与后端返回的 JSON key 匹配
-                        row = [
-                            config.get('id'),
-                            config.get('provider'),
-                            config.get('model_name'),
-                            config.get('base_url'), # 如果为 None，gradio 会显示为 "(No Value)"
-                            config.get('created_at'),
-                            config.get('updated_at')
-                        ]
-                        rows.append(row)
-                    # 返回更新 Dataframe 的值
-                    return gr.update(value=rows)
-                else:
-                    # 成功但列表为空
-                    return gr.update(value=[])
-            else:
-                # 获取失败，返回空列表
-                # 也可以选择返回错误信息到 dataframe 或其他方式提示
-                # 这里选择返回空列表，并可能需要前端其他方式提示错误
-                print(f"Warning: Failed to load LLM configs: {data_or_error}") # For debugging, can be removed later
-                return gr.update(value=[])
-
-        # 绑定刷新按钮点击事件
+        # ===== 刷新按钮事件 =====
         refresh_btn.click(
-            fn=refresh_llm_configs,
+            fn=_refresh_llm_configs,
             inputs=[],
             outputs=[llm_config_df]
         )
