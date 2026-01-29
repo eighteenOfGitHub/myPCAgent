@@ -20,7 +20,7 @@
 ### v0.2.7
 - feat：设置页面加载时数据自动加载
 - fix: api_key传输前加密功能缺失，已补齐
-- factor：（未实现）代码文件名加上功能后缀（例如：ui/user.py -> ui/user_ui.py）
+- factor：代码文件名加上功能后缀（例如：ui/user.py -> ui/user_ui.py）
 - factor：（未实现）统一后端路由获取路径（来源env_config），并将要求写入前端ai开发规范中
 
 ### v0.2.6
@@ -76,11 +76,11 @@
 |   |   |   __init__.py
 |   |   |   
 |   |   \---endpoints
-|   |           chat.py
-|   |           greeting.py
-|   |           health.py
-|   |           llm_setting.py
-|   |           user_preference.py
+|   |           chat_api.py
+|   |           greeting_api.py
+|   |           health_api.py
+|   |           llm_setting_api.py
+|   |           user_preference_api.py
 |   |           __init__.py
 |   |           
 |   +---core
@@ -150,32 +150,32 @@
 |   |   __init__.py
 |   |   
 |   +---handlers
-|   |       chat.py
-|   |       dashboard.py
-|   |       llm_setting.py
-|   |       preference_setting.py
+|   |       chat_handler.py
+|   |       dashboard_handler.py
+|   |       llm_setting_handler.py
+|   |       preference_setting_handler.py
 |   |       
 |   \---ui
-|       |   main_layout.py
+|       |   main_layout_ui.py
 |       |   
 |       \---pages
-|               agent.py
-|               chat.py
-|               dashboard.py
-|               llm_setting.py
-|               preference_setting.py
-|               settings.py
+|               agent_ui.py
+|               chat_ui.py
+|               dashboard_ui.py
+|               llm_setting_ui.py
+|               preference_setting_ui.py
+|               settings_ui.py
 |               __init__.py
 |               
 \---shared
-        chat.py
+        chat_schemas.py
         crypto.py
-        greeting.py
-        llm_setting.py
-        schemas.py
-        user_preference.py
+        general_schemas.py
+        greeting_schemas.py
+        llm_setting_schemas.py
+        user_preference_schemas.py
         __init__.py
-        
+
 
 ```
 
