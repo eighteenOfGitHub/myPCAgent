@@ -1,6 +1,7 @@
 import requests
 from typing import Optional
 from shared.llm_setting import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
+from shared.crypto import encrypt_text, decrypt_text
 
 def submit_new_llm_config(
     provider: LLMProvider,
@@ -11,11 +12,14 @@ def submit_new_llm_config(
     """Handler for 'Submit' button to save new LLM configuration."""
     if provider == LLMProvider.OLLAMA and api_key is None:
         api_key = ""
+    
+    # 提交前加密 api_key
+    encrypted_api_key = encrypt_text(api_key) if api_key else ""
         
     config_data = LLMConfigCreate(
         provider=provider,
         model_name=model_name,
-        api_key=api_key,
+        api_key=encrypted_api_key,  # 发送加密后的密钥
         base_url=base_url
     )
 
@@ -49,7 +53,6 @@ def test_existing_llm_config(config_id: int) -> str:
             timeout=30
         )
         if response.status_code == 200:
-            # 使用 LLMTestResponse 验证响应
             result = LLMTestResponse.model_validate(response.json())
             return result.message or ("测试通过" if result.success else "测试失败")
         else:
@@ -66,7 +69,6 @@ def delete_llm_config(config_id: int) -> bool:
             timeout=10
         )
         if response.status_code == 200:
-            # 虽然 MessageResponse 可选，但建议验证
             from shared.schemas import MessageResponse
             MessageResponse.model_validate(response.json())
             return True

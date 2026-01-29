@@ -28,17 +28,6 @@ class LLMSettingService:
     def _is_likely_env_var_name(s: str) -> bool:
         return bool(re.fullmatch(r'^[A-Z][A-Z0-9_]*$', s.strip()))
 
-    def _resolve_api_key(self, input_value: str) -> str:
-        clean_input = input_value.strip()
-        if self._is_likely_env_var_name(clean_input):
-            env_value = os.getenv(clean_input)
-            if not env_value:
-                raise ValueError(f"环境变量 '{clean_input}' 未设置，请输入有效的 API Key")
-            logger.debug("Resolved API key from environment variable: %s", clean_input)
-            return env_value
-        logger.debug("Using provided API key directly (not an env var).")
-        return clean_input
-
     def create(
         self,
         provider: str,
@@ -53,17 +42,11 @@ class LLMSettingService:
 
         # 如果 api_key_input 为空且 provider 是 ollama，则不解析，直接设为 None 或空字符串
         if not api_key_input and provider.lower() == "ollama":
-            real_api_key = api_key_input
             logger.debug("Ollama provider detected, skipping API key resolution.")
         else:
             decrypted_api_key = decrypt_text(api_key_input)
             if not decrypted_api_key and provider.lower() != "ollama":
                 raise ValueError("API Key 不能为空")
-            real_api_key = (
-                self._resolve_api_key(decrypted_api_key)
-                if decrypted_api_key
-                else decrypted_api_key
-            )
 
         config = LLMConfig(
             provider=provider.strip(),
@@ -152,11 +135,7 @@ class LLMSettingService:
                 decrypted_api_key = decrypt_text(api_key_input)
                 if not decrypted_api_key and provider.lower() != "ollama":
                     raise ValueError("API Key 不能为空")
-                real_api_key = (
-                    self._resolve_api_key(decrypted_api_key)
-                    if decrypted_api_key
-                    else decrypted_api_key
-                )
+                real_api_key = decrypted_api_key
 
             # 2. 根据 provider 创建对应的 LLM 实例
             llm: Optional[BaseLanguageModel] = None
