@@ -1,8 +1,5 @@
-"""
-shared/user_preference.py
+# shared/user_preference_schemas.py
 
-用户偏好相关的响应模型。
-"""
 from pydantic import BaseModel
 from typing import Optional
 

@@ -1,13 +1,10 @@
-"""backend/api/endpoints/chat.py
-
-聊天相关的所有 API 端点。
-"""
+# backend/api/endpoints/chat_api.py
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import List
 
-from shared.chat_schemas import (  # 改为从 shared.chat 导入
+from shared.chat_schemas import (
     ChatSessionCreate,
     ChatSessionRead,
     ChatMessageRead,

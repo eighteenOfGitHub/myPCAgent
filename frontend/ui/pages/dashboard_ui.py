@@ -1,4 +1,4 @@
-# frontend/ui/pages/dashboard.py
+# frontend/ui/pages/dashboard_ui.py
 
 import gradio as gr
 from pathlib import Path

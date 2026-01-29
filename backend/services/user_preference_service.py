@@ -2,7 +2,7 @@
 from typing import Optional
 from sqlmodel import Session
 from backend.core.database import get_db_session
-from backend.db_models.user_config import UserPreference
+from backend.db_models.user_config_models import UserPreference
 
 
 class UserPreferenceService:

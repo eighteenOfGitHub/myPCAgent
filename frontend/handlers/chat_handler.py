@@ -1,3 +1,5 @@
+# frontend/handlers/chat_handler.py
+
 import requests
 import json
 from typing import Generator, Tuple, List, Any

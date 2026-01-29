@@ -1,8 +1,5 @@
-"""
-backend/api/router.py
+# backend/api/router.py
 
-API 路由聚合器。
-"""
 from fastapi import APIRouter
 
 from backend.api.endpoints import chat_api, greeting_api, llm_setting_api, user_preference_api

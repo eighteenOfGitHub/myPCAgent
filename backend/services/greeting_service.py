@@ -1,10 +1,5 @@
-"""
-backend/core/services/greeting_service.py
+# backend/services/greeting_service.py
 
-问候服务模块。
-
-此模块包含与问候相关的业务逻辑函数，与 API 框架无关。
-"""
 from typing import Dict, Any
 
 async def generate_greeting(name: str = "World") -> Dict[str, Any]:

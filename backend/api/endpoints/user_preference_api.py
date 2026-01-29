@@ -1,9 +1,10 @@
-# backend/api/endpoints/user_preference.py
+# backend/api/endpoints/user_preference_api.py
+
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 
 from backend.services.user_preference_service import UserPreferenceService
-from backend.db_models.user_config import UserPreference
+from backend.db_models.user_config_models import UserPreference
 from shared.user_preference_schemas import UserPreferenceResponse, SetDefaultLLMResponse
 
 router = APIRouter(prefix="/preference", tags=["User Preference"])

@@ -1,9 +1,4 @@
 # claer_cache.py
-"""
-清理 Python 缓存脚本（增强版）
-作者: Assistant
-用途: 删除 __pycache__ 目录和 .pyc/.pyo 文件，支持递归扫描
-"""
 
 import os
 import shutil

@@ -1,4 +1,4 @@
-# frontend/ui/pages/llm_setting.py
+# frontend/ui/pages/llm_setting_ui.py
 import gradio as gr
 from frontend.handlers import llm_setting_handler
 from shared.llm_setting_schemas import LLMProvider

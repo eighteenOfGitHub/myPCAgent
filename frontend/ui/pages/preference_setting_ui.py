@@ -1,4 +1,4 @@
-# frontend/ui/pages/preference_setting.py
+# frontend/ui/pages/preference_setting_ui.py
 import gradio as gr
 from frontend.handlers.preference_setting_handler import (
     fetch_llm_basic_options,

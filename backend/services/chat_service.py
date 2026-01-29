@@ -1,4 +1,4 @@
-# backend/core/services/chat_service.py
+# backend/services/chat_service.py
 
 import os
 from typing import List, Optional, Generator

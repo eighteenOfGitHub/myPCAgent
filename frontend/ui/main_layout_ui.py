@@ -1,4 +1,4 @@
-# frontend/ui/main_layout.py
+# frontend/ui/main_layout_ui.py
 import gradio as gr
 from frontend.ui.pages import dashboard, chat, agent, settings
 from frontend.handlers.chat_handler import load_session_list

@@ -1,8 +1,4 @@
-"""backend/api/v1/endpoints/health.py
-
-健康检查相关的 API 端点。
-用于验证服务是否正常运行，包括数据库连接状态。
-"""
+# backend/api/endpoints/health_api.py
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text

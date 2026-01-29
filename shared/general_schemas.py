@@ -1,8 +1,4 @@
-"""
-shared/schemas.py
-
-共享的通用 Pydantic 响应模型。
-"""
+# shared/general_schemas.py
 from pydantic import BaseModel
 from typing import Optional, Any
 

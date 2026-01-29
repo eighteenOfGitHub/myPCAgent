@@ -11,7 +11,7 @@ from langchain_ollama import ChatOllama
 from shared.crypto import decrypt_text
 
 from backend.core.database import get_db_session
-from backend.db_models.user_config import LLMConfig
+from backend.db_models.user_config_models import LLMConfig
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,5 @@
+# frontend/handlers/dashboard_handler.py
+
 import requests
 from config.env_config import env_config
 from shared.greeting_schemas import GreetingResponse

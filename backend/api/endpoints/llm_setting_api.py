@@ -1,4 +1,4 @@
-# backend/api/endpoints/llm_setting.py
+# backend/api/endpoints/llm_setting_api.py
 
 from fastapi import APIRouter, HTTPException
 from typing import List

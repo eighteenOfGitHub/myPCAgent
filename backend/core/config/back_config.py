@@ -1,4 +1,4 @@
-"""backend/config/back_config.py 应用配置管理模块。"""
+# backend/core/config/back_config.py
 import yaml
 from pathlib import Path
 from typing import List, Optional

@@ -44,7 +44,7 @@ def init_db():
     """
     # 导入所有模型（触发 SQLModel 元类注册）
     from backend.db_models.chat_models import ChatSession, ChatMessage
-    from backend.db_models.user_config import LLMConfig, UserPreference
+    from backend.db_models.user_config_models import LLMConfig, UserPreference
 
     # 获取数据库中已存在的表名列表
     existing_tables = inspect(engine).get_table_names()

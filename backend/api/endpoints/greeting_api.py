@@ -1,10 +1,5 @@
-"""
-backend/api/v1/endpoints/greeting.py
+# backend/api/endpoints/greeting_api.py
 
-问候相关的 API 端点。
-
-此模块定义与问候相关的 FastAPI 路由，并调用核心服务层的函数。
-"""
 from fastapi import APIRouter, HTTPException
 from backend.services.greeting_service import generate_greeting
 from shared.greeting_schemas import GreetingResponse  # 从 shared.greeting 导入

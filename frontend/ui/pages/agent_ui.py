@@ -1,4 +1,4 @@
-# frontend/ui/pages/agent.py
+# frontend/ui/pages/agent_ui.py
 
 import gradio as gr
 

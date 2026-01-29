@@ -1,4 +1,4 @@
-# frontend/ui/pages/chat.py
+# frontend/ui/pages/chat_ui.py
 import gradio as gr
 
 from frontend.handlers.chat_handler import (

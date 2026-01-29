@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
 from datetime import datetime
 
-from backend.db_models.user_config import LLMConfig
+from backend.db_models.user_config_models import LLMConfig
 
 class ChatSession(SQLModel, table=True):
     """聊天会话主表"""
