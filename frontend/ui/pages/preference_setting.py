@@ -7,18 +7,21 @@ from frontend.handlers.preference_setting import (
 )
 
 def create_preference_setting_ui(visible: bool = True):
-    initial_choices = fetch_llm_basic_options() or []
-    default_id = fetch_default_llm_config_id()
-    if default_id is None:
-        # 后端无默认值时，列表首元素为空项
-        initial_choices = [("", None)] + initial_choices
-        initial_value = None
-    else:
-        initial_value = (
-            default_id
-            if any(c[1] == default_id for c in initial_choices)
-            else (initial_choices[0][1] if initial_choices else None)
-        )
+    def _load_initial():
+        choices = fetch_llm_basic_options() or []
+        default_id = fetch_default_llm_config_id()
+        if default_id is None:
+            choices = [("", None)] + choices
+            selected = None
+        else:
+            selected = (
+                default_id
+                if any(c[1] == default_id for c in choices)
+                else (choices[0][1] if choices else None)
+            )
+        return choices, selected
+
+    initial_choices, initial_value = _load_initial()
 
     with gr.Column(visible=visible) as preference_ui:
         gr.Markdown("### Default LLM Model")
@@ -34,19 +37,9 @@ def create_preference_setting_ui(visible: bool = True):
         status_text = gr.Textbox(value="", show_label=False, interactive=False, visible=False)
 
         def on_refresh(current_id):
-            choices = fetch_llm_basic_options() or []
-            backend_default = fetch_default_llm_config_id()
-            if backend_default is None:
-                # 无默认值 → 列表首元素为空项，并默认选中 None
-                choices = [("", None)] + choices
-                selected = current_id if any(c[1] == current_id for c in choices) else None
-            else:
-                if any(c[1] == backend_default for c in choices):
-                    selected = backend_default
-                elif current_id is not None and any(c[1] == current_id for c in choices):
-                    selected = current_id
-                else:
-                    selected = choices[0][1] if choices else None
+            choices, selected = _load_initial()
+            if selected is None and current_id is not None and any(c[1] == current_id for c in choices):
+                selected = current_id
             return gr.update(choices=choices, value=selected)
 
         def on_save(default_llm_id):
