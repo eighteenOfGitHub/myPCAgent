@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import List
 
-from shared.chat import (  # 改为从 shared.chat 导入
+from shared.chat_schemas import (  # 改为从 shared.chat 导入
     ChatSessionCreate,
     ChatSessionRead,
     ChatMessageRead,

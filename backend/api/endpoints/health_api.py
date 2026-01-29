@@ -7,7 +7,7 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 from backend.core.database import engine
-from shared.schemas import HealthResponse
+from shared.general_schemas import HealthResponse
 
 # 创建此模块专用的路由器
 router = APIRouter(prefix="/health", tags=["Health"])

@@ -1,7 +1,7 @@
 # frontend/ui/pages/settings.py
 import gradio as gr
-from .preference_setting import create_preference_setting_ui
-from .llm_setting import create_llm_models_setting_ui
+from .preference_setting_ui import create_preference_setting_ui
+from .llm_setting_ui import create_llm_models_setting_ui
 
 
 

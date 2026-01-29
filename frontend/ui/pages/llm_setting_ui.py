@@ -1,7 +1,7 @@
 # frontend/ui/pages/llm_setting.py
 import gradio as gr
-from frontend.handlers import llm_setting
-from shared.llm_setting import LLMProvider
+from frontend.handlers import llm_setting_handler
+from shared.llm_setting_schemas import LLMProvider
 
 def create_llm_models_setting_ui(visible=True):
     with gr.Column(visible=visible) as llm_ui:
@@ -10,7 +10,7 @@ def create_llm_models_setting_ui(visible=True):
         gr.Markdown("## 📋 LLM Configurations")
 
         def _initial_rows():
-            success, data_or_error = llm_setting.get_all_llm_configs()
+            success, data_or_error = llm_setting_handler.get_all_llm_configs()
             if success and isinstance(data_or_error, list):
                 rows = []
                 for config in data_or_error:
@@ -76,7 +76,7 @@ def create_llm_models_setting_ui(visible=True):
 
         def _refresh_llm_configs():
             # 重要过程：刷新表格数据，返回 Dataframe 的更新值
-            success, data_or_error = llm_setting.get_all_llm_configs()
+            success, data_or_error = llm_setting_handler.get_all_llm_configs()
             if success and isinstance(data_or_error, list) and len(data_or_error) > 0:
                 rows = []
                 for config in data_or_error:
@@ -108,7 +108,7 @@ def create_llm_models_setting_ui(visible=True):
                     gr.update()
                 )
 
-            success, message = llm_setting.submit_new_llm_config(
+            success, message = llm_setting_handler.submit_new_llm_config(
                 provider=provider_enum,
                 model_name=model,
                 api_key=key,

@@ -4,7 +4,7 @@ from typing import Optional
 
 from backend.services.user_preference_service import UserPreferenceService
 from backend.db_models.user_config import UserPreference
-from shared.user_preference import UserPreferenceResponse, SetDefaultLLMResponse
+from shared.user_preference_schemas import UserPreferenceResponse, SetDefaultLLMResponse
 
 router = APIRouter(prefix="/preference", tags=["User Preference"])
 

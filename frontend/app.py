@@ -6,7 +6,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from frontend.ui.main_layout import create_gradio_interface
+from frontend.ui.main_layout_ui import create_gradio_interface
 from config.env_config import env_config
 
 # 创建界面并启用队列

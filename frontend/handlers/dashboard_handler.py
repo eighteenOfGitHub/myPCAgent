@@ -1,6 +1,6 @@
 import requests
 from config.env_config import env_config
-from shared.greeting import GreetingResponse
+from shared.greeting_schemas import GreetingResponse
 
 def handle_hello_request():
     """处理向后端发送 hello 请求的函数。"""

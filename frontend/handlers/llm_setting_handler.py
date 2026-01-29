@@ -1,6 +1,6 @@
 import requests
 from typing import Optional
-from shared.llm_setting import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
+from shared.llm_setting_schemas import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
 from shared.crypto import encrypt_text, decrypt_text
 
 def submit_new_llm_config(
@@ -69,7 +69,7 @@ def delete_llm_config(config_id: int) -> bool:
             timeout=10
         )
         if response.status_code == 200:
-            from shared.schemas import MessageResponse
+            from shared.general_schemas import MessageResponse
             MessageResponse.model_validate(response.json())
             return True
         return False

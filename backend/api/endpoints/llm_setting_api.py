@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 from backend.services.llm_setting_service import LLMSettingService
-from shared.llm_setting import (
+from shared.llm_setting_schemas import (
     LLMConfigCreate,
     LLMConfigResponse,
     LLMConfigBasicResponse,

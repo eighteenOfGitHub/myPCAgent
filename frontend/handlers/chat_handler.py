@@ -4,8 +4,8 @@ from typing import Generator, Tuple, List, Any
 import gradio as gr
 
 from config.env_config import env_config
-from shared.chat import ChatSessionCreate, ChatSessionRead, ChatMessageRead, ChatTurnResponse
-from shared.schemas import MessageResponse
+from shared.chat_schemas import ChatSessionCreate, ChatSessionRead, ChatMessageRead, ChatTurnResponse
+from shared.general_schemas import MessageResponse
 
 API_BASE = f"http://{env_config.BACKEND_HOST}:{env_config.BACKEND_PORT}/api"
 
