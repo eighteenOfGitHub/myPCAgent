@@ -13,9 +13,9 @@ def render():
             llm_btn = gr.Button("LLM Models")
 
         # 右侧内容区
-        with gr.Column(scale=3):
+        with gr.Column(scale=7):
             preference_ui = create_preference_setting_ui(visible=True)
-            llm_ui, llm_config_df, refresh_btn  = create_llm_models_setting_ui(visible=False)
+            llm_ui, llm_config_df = create_llm_models_setting_ui(visible=False)
 
             # 切换逻辑：控制可见性
             def show_general():
