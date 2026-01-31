@@ -40,7 +40,7 @@ def submit_new_llm_config(
             saved_config = LLMConfigResponse.model_validate(response.json())
             return True, f"模型 '{saved_config.model_name}' 配置已成功保存！"
         else:
-            error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
+            error_detail = _get_error_detail(response)
             return False, f"请求失败: {error_detail}"
 
     except requests.exceptions.Timeout:
@@ -61,7 +61,7 @@ def test_existing_llm_config(config_id: int) -> str:
             result = LLMTestResponse.model_validate(response.json())
             return result.message or ("测试通过" if result.success else "测试失败")
         else:
-            error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
+            error_detail = _get_error_detail(response)
             return f"测试失败: {error_detail}"
     except Exception as e:
         return f"测试时发生错误: {str(e)}"
@@ -93,10 +93,7 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
             configs_list = [LLMConfigResponse.model_validate(cfg) for cfg in response.json()]
             return True, [cfg.model_dump() for cfg in configs_list]
         else:
-            try:
-                error_detail = response.json().get("detail", f"HTTP Error: {response.status_code}")
-            except ValueError:
-                error_detail = f"HTTP Error: {response.status_code}, Response Text: {response.text}"
+            error_detail = _get_error_detail(response)
             return False, f"获取配置列表失败: {error_detail}"
 
     except requests.exceptions.Timeout:
@@ -107,3 +104,9 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
         return False, f"请求发生错误: {str(e)}"
     except Exception as e:
         return False, f"发生未知错误: {str(e)}"
+
+def _get_error_detail(response):
+    try:
+        return response.json().get("detail", f"HTTP Error: {response.status_code}")
+    except ValueError:
+        return f"HTTP Error: {response.status_code}, Response Text: {response.text}"
