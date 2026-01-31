@@ -36,11 +36,12 @@ def render():
             )
 
         # 右侧：聊天区域
-        with gr.Column(scale=3):
+        with gr.Column(scale=7):
             chatbot = gr.Chatbot(
                 elem_id="chat_display",
                 height=500,
                 label="对话历史",
+                type="messages",
             )
             msg_input = gr.Textbox(
                 label="输入消息",
