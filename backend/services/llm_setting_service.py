@@ -145,7 +145,7 @@ class LLMSettingService:
                     model=model_name,
                     openai_api_key=real_api_key,
                     openai_api_base=base_url, # 支持自定义 base_url
-                    timeout=10
+                    timeout=30
                 )
             elif provider_lower == "ollama":
                 # 对于 Ollama，api_key 通常不需要，但 base_url 是必须的
@@ -154,7 +154,7 @@ class LLMSettingService:
                 llm = ChatOllama(
                     model=model_name,
                     base_url=ollama_base,
-                    timeout=10
+                    timeout=30
                 )
             else:
                 error_msg = f"不支持的 Provider: {provider}"
