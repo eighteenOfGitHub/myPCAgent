@@ -1,7 +1,9 @@
 # frontend/ui/pages/llm_setting_ui.py
 import gradio as gr
-from frontend.handlers.llm_setting_handler import get_all_llm_configs, submit_new_llm_config
-from frontend.handlers.preference_setting_handler import (
+from frontend.handlers.llm_setting_handler import (
+    get_all_llm_configs,
+    submit_new_llm_config,
+    delete_llm_config,
     fetch_default_llm_config_id,
     set_default_llm_config,
 )
@@ -49,6 +51,15 @@ def create_llm_models_setting_ui(visible=True):
             choices.append((label, cfg.get("id")))
         return _mark_default_choice(choices, default_id)
 
+    def _build_delete_choices(configs):
+        """构建删除下拉框选项"""
+        choices = []
+        for cfg in configs or []:
+            provider_label = _normalize_provider_label(cfg.get('provider'))
+            label = f"{cfg.get('model_name')} ({provider_label}) [ID: {cfg.get('id')}]"
+            choices.append((label, cfg.get('id')))
+        return choices
+
     def _get_selected_default(choices, default_id):
         if choices and any(c[1] == default_id for c in choices):
             return default_id
@@ -81,9 +92,11 @@ def create_llm_models_setting_ui(visible=True):
         choices = _build_choices_from_configs(configs, default_id)
         selected = _get_selected_default(choices, default_id)
         rows = _build_rows_from_configs(configs, default_id)
+        delete_choices = _build_delete_choices(configs)
         return (
             gr.update(value=rows),
             gr.update(choices=choices, value=selected),
+            gr.update(choices=delete_choices, value=None),
         )
 
     def _on_default_save(default_llm_id, current_configs):
@@ -101,6 +114,55 @@ def create_llm_models_setting_ui(visible=True):
             gr.update(value="✅ Saved default model.", visible=True),
             gr.update(active=True),
         )
+
+    def _on_delete_model(selected_id, current_configs, current_default_id):
+        """删除模型并刷新状态"""
+        if not selected_id:
+            return (
+                gr.update(),
+                gr.update(),
+                gr.update(value="⚠️ 请选择要删除的模型", visible=True),
+                gr.update(active=True),
+                current_configs,
+                current_default_id,
+            )
+        
+        try:
+            success = delete_llm_config(selected_id)
+            
+            if success:
+                # 重新获取配置列表
+                configs = _fetch_configs()
+                # 如果删除的是默认模型，清空默认ID
+                new_default_id = None if selected_id == current_default_id else current_default_id
+                
+                return (
+                    gr.update(choices=_build_delete_choices(configs), value=None),
+                    gr.update(open=False),
+                    gr.update(value="✅ 模型已成功删除", visible=True),
+                    gr.update(active=True),
+                    configs,
+                    new_default_id,
+                )
+            else:
+                return (
+                    gr.update(),
+                    gr.update(),
+                    gr.update(value="❌ 删除失败，请重试", visible=True),
+                    gr.update(active=True),
+                    current_configs,
+                    current_default_id,
+                )
+                
+        except Exception as e:
+            return (
+                gr.update(),
+                gr.update(),
+                gr.update(value=f"❌ 删除时发生错误: {str(e)}", visible=True),
+                gr.update(active=True),
+                current_configs,
+                current_default_id,
+            )
 
     def _on_provider_change(selected_provider, current_base_url):
         if selected_provider == "Ollama" and (not current_base_url or current_base_url.strip() == ""):
@@ -157,7 +219,6 @@ def create_llm_models_setting_ui(visible=True):
             )
 
     def _delayed_close_accordion():
-        # 重要过程：延迟 3 秒后关闭 Accordion
         import time
         time.sleep(3)
         return gr.update(open=False)
@@ -171,6 +232,7 @@ def create_llm_models_setting_ui(visible=True):
     initial_configs, initial_default_id = _fetch_state()
     initial_choices = _build_choices_from_configs(initial_configs, initial_default_id)
     initial_selected = _get_selected_default(initial_choices, initial_default_id)
+    initial_delete_choices = _build_delete_choices(initial_configs)
 
     # --- UI 布局 ---
     with gr.Column(visible=visible) as llm_ui:
@@ -194,7 +256,7 @@ def create_llm_models_setting_ui(visible=True):
         with gr.Row():
             gr.Column(scale=8)
             with gr.Column(scale=2, min_width=120):
-                refresh_btn = gr.Button("🔄 Refresh", variant="refresh", size="sm")
+                refresh_btn = gr.Button("🔄 Refresh", variant="secondary", size="sm")
 
         # ===== Default LLM Model =====
         gr.Markdown("## 🧠 Set Default LLM Model")
@@ -211,6 +273,20 @@ def create_llm_models_setting_ui(visible=True):
                 gr.Column(scale=8)
                 with gr.Column(scale=2, min_width=120):
                     default_submit_btn = gr.Button("✅ Submit", variant="primary", size="sm")
+
+        # ===== Delete LLM Model =====
+        gr.Markdown("## 🗑️ Delete LLM Model")
+        with gr.Accordion("Select model to delete", open=False) as delete_accordion:
+            delete_dropdown = gr.Dropdown(
+                choices=initial_delete_choices,
+                interactive=True,
+                allow_custom_value=False,
+                show_label=False,
+            )
+            with gr.Row():
+                gr.Column(scale=8)
+                with gr.Column(scale=2, min_width=120):
+                    delete_model_btn = gr.Button("🗑️ Delete", variant="stop", size="sm")
 
         # ===== 添加区域（下一行，占满宽度） =====
         gr.Markdown("## ➕ Add New LLM Configuration")
@@ -250,7 +326,7 @@ def create_llm_models_setting_ui(visible=True):
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
-            outputs=[llm_config_df, default_llm_dropdown],
+            outputs=[llm_config_df, default_llm_dropdown, delete_dropdown],
         )
 
         add_model_submit_btn.click(
@@ -260,7 +336,7 @@ def create_llm_models_setting_ui(visible=True):
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
-            outputs=[llm_config_df, default_llm_dropdown],
+            outputs=[llm_config_df, default_llm_dropdown, delete_dropdown],
         ).then(
             fn=_delayed_close_accordion,
             inputs=[],
@@ -275,7 +351,22 @@ def create_llm_models_setting_ui(visible=True):
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
-            outputs=[llm_config_df, default_llm_dropdown],
+            outputs=[llm_config_df, default_llm_dropdown, delete_dropdown],
+        )
+
+        delete_model_btn.click(
+            fn=_on_delete_model,
+            inputs=[delete_dropdown, llm_configs_state, default_id_state],
+            outputs=[delete_dropdown, delete_accordion, shared_status_text, shared_status_timer, llm_configs_state, default_id_state],
+        ).then(
+            fn=_sync_ui_from_state,
+            inputs=[llm_configs_state, default_id_state],
+            outputs=[llm_config_df, default_llm_dropdown, delete_dropdown],
+        ).then(
+            fn=_delayed_close_accordion,
+            inputs=[],
+            outputs=[delete_accordion],
+            show_progress="hidden"
         )
 
         shared_status_timer.tick(

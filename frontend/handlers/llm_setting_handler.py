@@ -1,10 +1,16 @@
 # frontend/handlers/llm_setting_handler.py
 
 import requests
-from typing import Optional
+from typing import Optional, List, Tuple
 from config.env_config import env_config
-from shared.llm_setting_schemas import LLMConfigCreate, LLMProvider, LLMTestResponse, LLMConfigResponse
-from shared.crypto import encrypt_text, decrypt_text
+from shared.llm_setting_schemas import (
+    LLMConfigCreate,
+    LLMProvider,
+    LLMTestResponse,
+    LLMConfigResponse,
+    LLMConfigBasicResponse,
+)
+from shared.user_preference_schemas import UserPreferenceResponse, SetDefaultLLMResponse
 
 # 重要过程：从 env_config 统一获取 API 基址
 API_BASE = env_config.API_BASE_URL
@@ -20,6 +26,7 @@ def submit_new_llm_config(
         api_key = ""
     
     # 提交前加密 api_key
+    from shared.crypto import encrypt_text
     encrypted_api_key = encrypt_text(api_key) if api_key else ""
         
     config_data = LLMConfigCreate(
@@ -104,6 +111,41 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
         return False, f"请求发生错误: {str(e)}"
     except Exception as e:
         return False, f"发生未知错误: {str(e)}"
+
+def fetch_llm_basic_options() -> List[Tuple[str, int]]:
+    """获取下拉可选项，返回 [(label, id), ...]"""
+    try:
+        resp = requests.get(f"{API_BASE}/settings/llm/basic", timeout=10)
+        resp.raise_for_status()
+        items = resp.json()
+        validated = [LLMConfigBasicResponse.model_validate(item) for item in items]
+        return [
+            (f"{item.provider.value} / {item.model_name}", item.id)
+            for item in validated
+        ]
+    except Exception:
+        return []
+
+def fetch_default_llm_config_id() -> Optional[int]:
+    """获取后端保存的默认 LLM 配置 ID，失败返回 None"""
+    try:
+        resp = requests.get(f"{API_BASE}/preference", timeout=10)
+        resp.raise_for_status()
+        pref = UserPreferenceResponse.model_validate(resp.json())
+        return pref.default_llm_config_id
+    except Exception:
+        return None
+
+def set_default_llm_config(config_id: int | None) -> tuple[bool, str, int | None]:
+    """保存默认 LLM 配置，config_id 为 None 表示清空。"""
+    try:
+        params = {"config_id": config_id} if config_id is not None else {}
+        resp = requests.post(f"{API_BASE}/preference/default-llm", params=params, timeout=10)
+        resp.raise_for_status()
+        result = SetDefaultLLMResponse.model_validate(resp.json())
+        return True, "Saved default model successfully.", result.default_llm_config_id
+    except Exception as e:
+        return False, f"Save default model failed: {e}", None
 
 def _get_error_detail(response):
     try:
