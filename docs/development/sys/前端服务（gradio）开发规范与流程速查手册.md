@@ -119,7 +119,16 @@ refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 
 十一、示例片段（只读可复制 Dataframe 与刷新）
 ```python
-# 只读表格
+# --- 辅助函数（数据/事件逻辑） ---
+def _refresh():
+    ok, data = handlers.llm_setting.get_all_llm_configs()
+    if ok and isinstance(data, list):
+        rows = [[d.get("id"), d.get("provider"), d.get("model_name"),
+                 d.get("base_url"), d.get("created_at"), d.get("updated_at")] for d in data]
+        return gr.update(value=rows)
+    return gr.update(value=[])
+
+# --- UI 布局 ---
 df = gr.Dataframe(
     headers=["ID", "Provider", "Model", "Base URL", "Created At", "Updated At"],
     datatype=["number", "str", "str", "str", "str", "str"],
@@ -130,26 +139,7 @@ df = gr.Dataframe(
     type="array",
 )
 
-# 允许复制
-gr.HTML("""
-<style>
-#llm_config_table table, #llm_config_table table * {
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    cursor: text;
-}
-</style>
-""")
-
-# 刷新
-def _refresh():
-    ok, data = handlers.llm_setting.get_all_llm_configs()
-    if ok and isinstance(data, list):
-        rows = [[d.get("id"), d.get("provider"), d.get("model_name"),
-                 d.get("base_url"), d.get("created_at"), d.get("updated_at")] for d in data]
-        return gr.update(value=rows)
-    return gr.update(value=[])
-
+# --- 控件绑定（集中注册） ---
 refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 ```
 
