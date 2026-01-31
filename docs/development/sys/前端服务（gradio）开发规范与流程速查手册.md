@@ -19,13 +19,13 @@
 - 组织顺序：1) 辅助函数 2) UI 布局 3) 控件绑定
 
 ```python
-# 辅助函数（数据/事件逻辑）
+# --- 辅助函数（数据/事件逻辑） ---
 def _initial_rows(): ...
 def _on_change(...): ...
 def _on_submit(...): ...
 def _refresh(): ...
 
-# UI 布局（仅 UI 组件）
+# --- UI 布局 ---
 with gr.Column(visible=True) as root:
     # 标题与操作同行：左文右钮
     with gr.Row():
@@ -50,7 +50,7 @@ with gr.Column(visible=True) as root:
     </style>
     """)
 
-# 控件绑定（集中注册）
+# --- 控件绑定（集中注册） ---
 refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 ```
 
@@ -164,4 +164,4 @@ refresh_btn.click(fn=_refresh, inputs=[], outputs=[df])
 - 与后端字段是否一致（headers/keys 对齐 shared 模型）？
 - 是否避免打印敏感信息？
 - 刷新逻辑是否健壮（失败降级为空列表）？
-- **✅ API 路由是否统一获取（来源 env_config，无硬编码）？**
+- API 路由是否统一获取（来源 env_config，无硬编码）?
