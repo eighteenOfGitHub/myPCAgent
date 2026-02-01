@@ -22,6 +22,7 @@
  - feat: 下拉框默认模型添加（default model）用于显示区别
  - feat：重新设置默认模型后自动刷新下拉框
  - feat：preference_setting_ui界面美化（按钮同行，提示语自动消失）
+ - feat：LLM模型删除功能（带下拉框选择与确认按钮）
  - factor：preference_setting_ui中default_llm部分迁移到llm_setting_ui中，使用gr.state管理数据，减少数据重复获取，提高前端性能
 
 ### v0.2.7
