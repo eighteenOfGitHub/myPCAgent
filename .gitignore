@@ -57,6 +57,3 @@ tree.txt
 # Jupyter 
 .ipynb_checkpoints/
 *.ipynb
-
-# references
-references/
