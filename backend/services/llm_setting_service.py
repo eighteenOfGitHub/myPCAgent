@@ -11,7 +11,7 @@ from langchain_ollama import ChatOllama
 from shared.crypto import decrypt_text
 
 from backend.core.database import get_db_session
-from backend.db_models.user_config_models import LLMConfig
+from backend.db_models.setting_models import LLMSetting
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class LLMSettingService:
         model_name: str,
         api_key_input: str,
         base_url: Optional[str] = None,
-    ) -> LLMConfig:
+    ) -> LLMSetting:
         """创建一个新的 LLM 配置（可用于保存多个模型预设）"""
         # 修改：当 provider 为 ollama 时，允许 api_key_input 为空
         if not api_key_input and provider.lower() != "ollama":
@@ -48,7 +48,7 @@ class LLMSettingService:
             if not decrypted_api_key and provider.lower() != "ollama":
                 raise ValueError("API Key 不能为空")
 
-        config = LLMConfig(
+        config = LLMSetting(
             provider=provider.strip(),
             model_name=model_name.strip(),
             api_key=api_key_input,  # store ciphertext
@@ -70,10 +70,10 @@ class LLMSettingService:
 
         return config
 
-    def get_by_id(self, config_id: int) -> Optional[LLMConfig]:
+    def get_by_id(self, config_id: int) -> Optional[LLMSetting]:
         """根据 ID 获取配置"""
         with get_db_session() as session:
-            config = session.get(LLMConfig, config_id)
+            config = session.get(LLMSetting, config_id)
             if config is None:
                 logger.debug("LLM configuration not found for config_id=%d", config_id)
             return config
@@ -82,7 +82,7 @@ class LLMSettingService:
         """供前端下拉选择：仅返回 id / provider / model_name"""
         with get_db_session() as session:
             rows = session.exec(
-                select(LLMConfig.id, LLMConfig.provider, LLMConfig.model_name)
+                select(LLMSetting.id, LLMSetting.provider, LLMSetting.model_name)
             ).all()
             logger.debug("Retrieved basic LLM configurations. Count: %d", len(rows))
             return [
@@ -90,17 +90,17 @@ class LLMSettingService:
                 for row in rows
             ]
 
-    def get_all(self) -> List[LLMConfig]:
+    def get_all(self) -> List[LLMSetting]:
         """获取所有 LLM 配置（完整字段）"""
         with get_db_session() as session:
-            configs = session.exec(select(LLMConfig)).all()
+            configs = session.exec(select(LLMSetting)).all()
             logger.debug("Retrieved all LLM configurations. Count: %d", len(configs))
             return configs
 
     def delete(self, config_id: int) -> bool:
         """ 删除指定配置 """
         with get_db_session() as session:
-            config = session.get(LLMConfig, config_id)
+            config = session.get(LLMSetting, config_id)
             if not config:
                 logger.warning("Attempted to delete non-existent LLM configuration. config_id=%d", config_id)
                 return False

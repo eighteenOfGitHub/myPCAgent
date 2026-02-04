@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 
 from shared.chat_schemas import ChatTurnResponse
-from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
+from backend.db_models.chat_models import LLMSetting, ChatSession, ChatMessage
 from backend.services.llm_setting_service import LLMSettingService 
 from backend.core.database import get_db_session
 
@@ -25,7 +25,7 @@ class ChatService:
     def __init__(self):
         pass
 
-    def _get_llm_client(self, config: LLMConfig):
+    def _get_llm_client(self, config: LLMSetting):
         """根据配置创建 LangChain LLM 客户端"""
         api_key = os.getenv(config.api_key_name)
         if not api_key:

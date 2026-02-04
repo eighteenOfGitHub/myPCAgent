@@ -2,7 +2,7 @@
 from typing import Optional
 from sqlmodel import Session
 from backend.core.database import get_db_session
-from backend.db_models.user_config_models import UserPreference
+from backend.db_models.setting_models import DefaultSetting
 
 
 class UserPreferenceService:
@@ -15,28 +15,28 @@ class UserPreferenceService:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def _ensure_exists(self, session: Session) -> UserPreference:
+    def _ensure_exists(self, session: Session) -> DefaultSetting:
         """确保偏好记录存在（ID=1），不存在则创建"""
-        pref = session.get(UserPreference, 1)
+        pref = session.get(DefaultSetting, 1)
         if not pref:
-            pref = UserPreference(id=1)
+            pref = DefaultSetting(id=1)
             session.add(pref)
             session.commit()
             session.refresh(pref)
         return pref
 
-    def get_preference(self) -> UserPreference:
+    def get_preference(self) -> DefaultSetting:
         """获取当前用户偏好（自动初始化若不存在）"""
         with get_db_session() as session:
-            pref = session.get(UserPreference, 1)
+            pref = session.get(DefaultSetting, 1)
             if not pref:
-                pref = UserPreference(id=1)
+                pref = DefaultSetting(id=1)
                 session.add(pref)
                 session.commit()
                 session.refresh(pref)
             return pref
 
-    def update_default_llm_config(self, config_id: Optional[int]) -> UserPreference:
+    def update_default_llm_config(self, config_id: Optional[int]) -> DefaultSetting:
         """
         更新默认 LLM 配置 ID
         :param config_id: LLMConfig 的 ID，None 表示清空默认
@@ -53,7 +53,7 @@ class UserPreferenceService:
         self,
         default_llm_config_id: Optional[int] = None,
         # 可在此扩展其他字段，如 theme, language 等
-    ) -> UserPreference:
+    ) -> DefaultSetting:
         """
         批量更新偏好设置（预留扩展）
         """
@@ -67,10 +67,10 @@ class UserPreferenceService:
             session.refresh(pref)
             return pref
 
-    def reset_to_default(self) -> UserPreference:
+    def reset_to_default(self) -> DefaultSetting:
         """重置偏好为初始状态（仅保留 ID=1，清空所有字段）"""
         with get_db_session() as session:
-            pref = UserPreference(id=1)  # 覆盖现有
+            pref = DefaultSetting(id=1)  # 覆盖现有
             session.merge(pref)  # 使用 merge 安全更新
             session.commit()
             session.refresh(pref)

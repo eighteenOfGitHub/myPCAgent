@@ -1,13 +1,13 @@
-# backend/db_models/user_config.py
+# backend/db_models/setting_models.py
 
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
 from datetime import datetime
 
 
-
-class LLMConfig(SQLModel, table=True):
+class LLMSetting(SQLModel, table=True):
     """大语言模型配置表（API Key 在保存时解析并持久化）"""
+    __tablename__ = "llm_setting"
     
     id: Optional[int] = Field(default=None, primary_key=True)
     provider: str = Field(index=True, description="LLM 服务提供商，目前支持 openai 和 ollama", min_length=1)
@@ -18,18 +18,18 @@ class LLMConfig(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.now)
 
 
-class UserPreference(SQLModel, table=True):
+class DefaultSetting(SQLModel, table=True):
     """
-    用户全局偏好设置（单例，ID=1）
-    用于存储默认行为，如默认 LLM 配置
+    用于存储默认行为，如默认 LLM 配置（单例，ID=1）
     """
+    __tablename__ = "default_setting"
     
     id: int = Field(default=1, primary_key=True)  # 强制单例
     
     # 默认 LLM 配置 ID（可为空，表示尚未设置）
     default_llm_config_id: Optional[int] = Field(
         default=None,
-        foreign_key="llmconfig.id",
+        foreign_key="llm_setting.id",  # 改为 llm_setting
         description="默认使用的 LLM 配置 ID"
     )
     
@@ -38,4 +38,4 @@ class UserPreference(SQLModel, table=True):
     # language: str = Field(default="zh-CN")
 
     # Relationship（可选，方便 ORM 查询）
-    default_llm_config: Optional["LLMConfig"] = Relationship()
+    default_llm_setting: Optional["LLMSetting"] = Relationship()

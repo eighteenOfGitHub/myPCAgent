@@ -4,13 +4,15 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional
 from datetime import datetime
 
-from backend.db_models.user_config_models import LLMConfig
+from backend.db_models.setting_models import LLMSetting
 
 class ChatSession(SQLModel, table=True):
     """聊天会话主表"""
+    __tablename__ = "chat_session"
+
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(default="新对话", max_length=100)
-    config_id: int = Field(foreign_key="llmconfig.id")
+    config_id: int = Field(foreign_key="llm_setting.id")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
@@ -22,8 +24,10 @@ class ChatSession(SQLModel, table=True):
 
 class ChatMessage(SQLModel, table=True):
     """聊天消息明细表（含 LLM 模型快照，确保历史可追溯）"""
+    __tablename__ = "chat_message"
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    session_id: int = Field(foreign_key="chatsession.id", index=True)
+    session_id: int = Field(foreign_key="chat_session.id", index=True)
     role: str = Field(description="'user' 或 'assistant'")
     content: str = Field(description="消息内容")
     llm_provider: str = Field(description="消息生成时使用的 LLM 提供商（如 openai、ollama）")
