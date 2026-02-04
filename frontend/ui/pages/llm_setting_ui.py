@@ -6,93 +6,39 @@ from frontend.handlers.llm_setting_handler import (
     delete_llm_config,
     fetch_default_llm_config_id,
     set_default_llm_config,
+    format_ts_to_sec,
+    normalize_provider_label,
+    build_choices_from_configs,
+    build_delete_choices,
+    get_selected_default,
+    build_rows_from_configs,
+    fetch_llm_state,
 )
 from shared.llm_setting_schemas import LLMProvider
 
-def create_llm_models_setting_ui(visible=True):
+def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_id_state=None):
     # --- 辅助函数（数据/事件逻辑） ---
-    def _format_ts_to_sec(value):
-        if not value:
-            return value
-        if isinstance(value, str):
-            return value[:19].replace("T", " ")
-        try:
-            return value.strftime("%Y-%m-%d %H:%M:%S")
-        except Exception:
-            return value
-
-    def _is_default(row_id, default_id):
-        if default_id is None or row_id is None:
-            return ""
-        return "√" if str(row_id) == str(default_id) else ""
-
-    def _mark_default_choice(choices, default_id):
-        if not default_id:
-            return choices
-        marked = []
-        for label, value in choices:
-            if value == default_id:
-                label = f"{label}(default model)"
-            marked.append((label, value))
-        return marked
-
-    def _normalize_provider_label(provider):
-        if hasattr(provider, "value"):
-            return provider.value
-        if isinstance(provider, str) and provider.startswith("LLMProvider."):
-            return provider.split(".", 1)[1].title()
-        return str(provider) if provider is not None else ""
-
-    def _build_choices_from_configs(configs, default_id):
-        choices = []
-        for cfg in configs or []:
-            provider_label = _normalize_provider_label(cfg.get('provider'))
-            label = f"{provider_label} / {cfg.get('model_name')}"
-            choices.append((label, cfg.get("id")))
-        return _mark_default_choice(choices, default_id)
-
     def _build_delete_choices(configs):
         """构建删除下拉框选项"""
         choices = []
         for cfg in configs or []:
-            provider_label = _normalize_provider_label(cfg.get('provider'))
+            provider_label = normalize_provider_label(cfg.get('provider'))
             label = f"{cfg.get('model_name')} ({provider_label}) [ID: {cfg.get('id')}]"
             choices.append((label, cfg.get('id')))
         return choices
-
-    def _get_selected_default(choices, default_id):
-        if choices and any(c[1] == default_id for c in choices):
-            return default_id
-        return choices[0][1] if choices else None
-
-    def _build_rows_from_configs(configs, default_id):
-        rows = []
-        for config in configs or []:
-            row_id = config.get('id')
-            rows.append([
-                row_id,
-                config.get('provider'),
-                config.get('model_name'),
-                _is_default(row_id, default_id),
-                config.get('base_url'),
-                _format_ts_to_sec(config.get('updated_at'))
-            ])
-        return rows
 
     def _fetch_configs():
         success, data_or_error = get_all_llm_configs()
         return data_or_error if success and isinstance(data_or_error, list) else []
 
     def _fetch_state():
-        configs = _fetch_configs()
-        default_id = fetch_default_llm_config_id()
-        return configs, default_id
+        return fetch_llm_state()
 
     def _sync_ui_from_state(configs, default_id):
-        choices = _build_choices_from_configs(configs, default_id)
-        selected = _get_selected_default(choices, default_id)
-        rows = _build_rows_from_configs(configs, default_id)
-        delete_choices = _build_delete_choices(configs)
+        choices = build_choices_from_configs(configs, default_id)
+        selected = get_selected_default(choices, default_id)
+        rows = build_rows_from_configs(configs, default_id)
+        delete_choices = build_delete_choices(configs)
         return (
             gr.update(value=rows),
             gr.update(choices=choices, value=selected),
@@ -229,10 +175,21 @@ def create_llm_models_setting_ui(visible=True):
             gr.update(active=False),
         )
 
-    initial_configs, initial_default_id = _fetch_state()
-    initial_choices = _build_choices_from_configs(initial_configs, initial_default_id)
-    initial_selected = _get_selected_default(initial_choices, initial_default_id)
-    initial_delete_choices = _build_delete_choices(initial_configs)
+    # 如果没有传入共享状态，则创建本地状态并初始化
+    if llm_configs_state is None or default_id_state is None:
+        initial_configs, initial_default_id = fetch_llm_state()
+        if llm_configs_state is None:
+            llm_configs_state = gr.State(value=initial_configs)
+        if default_id_state is None:
+            default_id_state = gr.State(value=initial_default_id)
+    else:
+        # 使用共享状态的当前值作为初始值
+        initial_configs = llm_configs_state.value or []
+        initial_default_id = default_id_state.value
+
+    initial_choices = build_choices_from_configs(initial_configs, initial_default_id)
+    initial_selected = get_selected_default(initial_choices, initial_default_id)
+    initial_delete_choices = build_delete_choices(initial_configs)
 
     # --- UI 布局 ---
     with gr.Column(visible=visible) as llm_ui:
@@ -240,15 +197,16 @@ def create_llm_models_setting_ui(visible=True):
         # ===== 表格区域（最前面） =====
         gr.Markdown("## 📋 LLM Configurations")
 
-        llm_configs_state = gr.State(value=initial_configs)
-        default_id_state = gr.State(value=initial_default_id)
+        # 使用共享状态（由主布局传入）
+        llm_configs_state = llm_configs_state
+        default_id_state = default_id_state
 
         llm_config_df = gr.Dataframe(
             headers=["ID", "Provider", "Model Name", "Default", "Base URL", "Updated At"],
             datatype=["number", "str", "str", "str", "str", "str"],
             interactive=False,
             elem_id="llm_config_table",
-            value=_build_rows_from_configs(initial_configs, initial_default_id),
+            value=build_rows_from_configs(initial_configs, initial_default_id),
             wrap=True,
         )
 
@@ -375,4 +333,5 @@ def create_llm_models_setting_ui(visible=True):
             outputs=[shared_status_text, shared_status_timer],
         )
 
-    return llm_ui, llm_config_df
+    # 返回状态引用，供主布局监听
+    return llm_ui, llm_config_df, llm_configs_state, default_id_state

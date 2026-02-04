@@ -7,9 +7,27 @@ from frontend.handlers.chat_handler import (
     load_messages,
     stream_chat
 )
+from frontend.handlers.llm_setting_handler import build_choices_from_configs
 
-def render():
+def render(llm_configs_state=None, default_id_state=None):
     """聊天页面：会话管理 + 对话交互（含完整事件绑定）"""
+    
+    # --- 辅助函数（数据/事件逻辑） ---
+    def _resolve_default_model_info(configs, default_id):
+        """从配置列表中解析默认模型信息"""
+        for cfg in configs or []:
+            if str(cfg.get("id")) == str(default_id):
+                model = cfg.get("model_name") or "—"
+                provider = cfg.get("provider") or "—"
+                return model, provider
+        return "—", "—"
+    
+    # 获取初始值用于下拉框
+    initial_configs = llm_configs_state.value if llm_configs_state else []
+    initial_default_id = default_id_state.value if default_id_state else None
+    initial_choices = build_choices_from_configs(initial_configs, initial_default_id)
+
+    # --- UI 布局 ---
     with gr.Row():
         # 左侧：会话控制面板
         with gr.Column(scale=1, min_width=180):
@@ -24,15 +42,12 @@ def render():
             delete_session_btn = gr.Button("🗑️ 删除会话", variant="stop", size="sm")
             
             gr.Markdown("### ⚙️ 当前配置")
-            model_info = gr.Textbox(
-                label="模型",
-                value="未选择会话",
-                interactive=False
-            )
-            provider_info = gr.Textbox(
-                label="提供商",
-                value="—",
-                interactive=False
+            current_model_dropdown = gr.Dropdown(
+                label="当前模型（默认）",
+                choices=initial_choices,
+                value=initial_default_id,
+                interactive=False,
+                allow_custom_value=False,
             )
 
         # 右侧：聊天区域
@@ -55,8 +70,12 @@ def render():
     # 状态管理
     session_id_state = gr.State(None)
     chat_history_state = gr.State([])
+    if llm_configs_state is None:
+        llm_configs_state = gr.State(value=[])
+    if default_id_state is None:
+        default_id_state = gr.State(value=None)
 
-    # 事件绑定
+    # --- 控件绑定（集中注册） ---
     # 1. 新建会话
     new_session_btn.click(
         create_new_session,
@@ -77,9 +96,9 @@ def render():
         outputs=[chat_history_state, chatbot],
         show_progress="minimal"
     ).then(
-        lambda sid: (sid, "未加载", "—") if not sid else (sid, f"会话 {sid}", "openai"),
+        lambda sid: sid,
         inputs=[session_dropdown],
-        outputs=[session_id_state, model_info, provider_info]
+        outputs=[session_id_state]
     )
 
     # 3. 发送消息（流式）
@@ -90,9 +109,9 @@ def render():
         queue=True,
         show_progress="minimal"
     ).then(
-        lambda: "", None, msg_input  # 清空输入框
+        lambda: "", None, msg_input
     ).then(
-        lambda hist: hist, [chatbot], chat_history_state  # 同步状态
+        lambda hist: hist, [chatbot], chat_history_state
     )
 
     # 4. 回车发送
@@ -108,5 +127,5 @@ def render():
         lambda hist: hist, [chatbot], chat_history_state
     )
 
-    return session_dropdown
+    return session_dropdown, current_model_dropdown
 

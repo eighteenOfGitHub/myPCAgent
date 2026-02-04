@@ -152,3 +152,70 @@ def _get_error_detail(response):
         return response.json().get("detail", f"HTTP Error: {response.status_code}")
     except ValueError:
         return f"HTTP Error: {response.status_code}, Response Text: {response.text}"
+
+def format_ts_to_sec(value):
+    if not value:
+        return value
+    if isinstance(value, str):
+        return value[:19].replace("T", " ")
+    try:
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return value
+
+def normalize_provider_label(provider):
+    if hasattr(provider, "value"):
+        return provider.value
+    if isinstance(provider, str) and provider.startswith("LLMProvider."):
+        return provider.split(".", 1)[1].title()
+    return str(provider) if provider is not None else ""
+
+def build_choices_from_configs(configs, default_id):
+    choices = []
+    for cfg in configs or []:
+        provider_label = normalize_provider_label(cfg.get("provider"))
+        label = f"{provider_label} / {cfg.get('model_name')}"
+        choices.append((label, cfg.get("id")))
+    if not default_id:
+        return choices
+    marked = []
+    for label, value in choices:
+        if value == default_id:
+            label = f"{label}(default model)"
+        marked.append((label, value))
+    return marked
+
+def build_delete_choices(configs):
+    choices = []
+    for cfg in configs or []:
+        provider_label = normalize_provider_label(cfg.get("provider"))
+        label = f"{cfg.get('model_name')} ({provider_label}) [ID: {cfg.get('id')}]"
+        choices.append((label, cfg.get("id")))
+    return choices
+
+def get_selected_default(choices, default_id):
+    if choices and any(c[1] == default_id for c in choices):
+        return default_id
+    return choices[0][1] if choices else None
+
+def build_rows_from_configs(configs, default_id):
+    rows = []
+    for config in configs or []:
+        row_id = config.get("id")
+        rows.append([
+            row_id,
+            config.get("provider"),
+            config.get("model_name"),
+            "√" if (row_id is not None and default_id is not None and str(row_id) == str(default_id)) else "",
+            config.get("base_url"),
+            format_ts_to_sec(config.get("updated_at")),
+        ])
+    return rows
+
+def fetch_llm_state():
+    configs = []
+    success, data_or_error = get_all_llm_configs()
+    if success and isinstance(data_or_error, list):
+        configs = data_or_error
+    default_id = fetch_default_llm_config_id()
+    return configs, default_id
