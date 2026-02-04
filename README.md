@@ -19,6 +19,7 @@
 
 ### v0.2.11 前端不同页面间状态共享
 
+ - factor：llm_setting的数据初始化从llm_setting_ui迁移到main_layout_ui中，避免多次请求后端接口
  - feat: llm_setting_ui返回状态引用，供主布局监听，实现不同页面间状态共享
  - feat: chat_ui实现default_llm_config_id状态更新
 
