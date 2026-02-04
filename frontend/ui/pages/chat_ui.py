@@ -22,6 +22,11 @@ def render(llm_configs_state=None, default_id_state=None):
                 return model, provider
         return "—", "—"
     
+    def _load_sessions():
+        """加载历史会话列表"""
+        sessions = load_session_list()
+        return gr.update(choices=sessions)
+
     # 获取初始值用于下拉框
     initial_configs = llm_configs_state.value if llm_configs_state else []
     initial_default_id = default_id_state.value if default_id_state else None
@@ -34,7 +39,7 @@ def render(llm_configs_state=None, default_id_state=None):
             gr.Markdown("### 💬 会话管理")
             session_dropdown = gr.Dropdown(
                 label="历史会话",
-                choices=[],
+                choices=[],  # 初始为空，由 .load() 填充
                 interactive=True,
                 value=None
             )
@@ -127,5 +132,8 @@ def render(llm_configs_state=None, default_id_state=None):
         lambda hist: hist, [chatbot], chat_history_state
     )
 
+    # 页面首次加载时获取会话列表
+    # 注意：需要在 .load() 中引用组件，无法在组件定义前添加
+    
     return session_dropdown, current_model_dropdown
 
