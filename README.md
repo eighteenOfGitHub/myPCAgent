@@ -17,7 +17,12 @@
 
 ## 🧩 二、版本新增
 
-### v0.3.0 default_setting相关
+### v0.2.11 前端不同页面间状态共享
+
+ - feat: llm_setting_ui返回状态引用，供主布局监听，实现不同页面间状态共享
+ - feat: chat_ui实现default_llm_config_id状态更新
+
+### v0.2.10 default_setting相关
 
  - factor：重命名 preference_setting 为 default_setting
 
