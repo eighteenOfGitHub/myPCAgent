@@ -1,6 +1,6 @@
 # frontend/ui/pages/settings_ui.py
 import gradio as gr
-from .preference_setting_ui import create_preference_setting_ui
+from .default_setting_ui import create_default_setting_ui
 from .llm_setting_ui import create_llm_models_setting_ui
 
 
@@ -14,7 +14,7 @@ def render():
 
         # 右侧内容区
         with gr.Column(scale=7):
-            preference_ui = create_preference_setting_ui(visible=True)
+            preference_ui = create_default_setting_ui(visible=True)
             llm_ui, llm_config_df = create_llm_models_setting_ui(visible=False)
 
             # 切换逻辑：控制可见性

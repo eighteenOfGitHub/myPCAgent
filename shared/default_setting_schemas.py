@@ -1,9 +1,9 @@
-# shared/user_preference_schemas.py
+# shared/default_setting_schemas.py
 
 from pydantic import BaseModel
 from typing import Optional
 
-class UserPreferenceResponse(BaseModel):
+class DefaultSettingResponse(BaseModel):
     """用户偏好设置响应"""
     id: int
     default_llm_config_id: Optional[int] = None
@@ -16,4 +16,4 @@ class SetDefaultLLMResponse(BaseModel):
     status: str
     default_llm_config_id: Optional[int] = None
 
-__all__ = ["UserPreferenceResponse", "SetDefaultLLMResponse"]
+__all__ = ["DefaultSettingResponse", "SetDefaultLLMResponse"]

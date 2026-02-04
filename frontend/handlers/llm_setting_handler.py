@@ -10,7 +10,7 @@ from shared.llm_setting_schemas import (
     LLMConfigResponse,
     LLMConfigBasicResponse,
 )
-from shared.user_preference_schemas import UserPreferenceResponse, SetDefaultLLMResponse
+from shared.default_setting_schemas import DefaultSettingResponse, SetDefaultLLMResponse
 
 # 重要过程：从 env_config 统一获取 API 基址
 API_BASE = env_config.API_BASE_URL
@@ -131,7 +131,7 @@ def fetch_default_llm_config_id() -> Optional[int]:
     try:
         resp = requests.get(f"{API_BASE}/preference", timeout=10)
         resp.raise_for_status()
-        pref = UserPreferenceResponse.model_validate(resp.json())
+        pref = DefaultSettingResponse.model_validate(resp.json())
         return pref.default_llm_config_id
     except Exception:
         return None

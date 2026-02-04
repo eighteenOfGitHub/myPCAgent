@@ -29,7 +29,7 @@ class DefaultSetting(SQLModel, table=True):
     # 默认 LLM 配置 ID（可为空，表示尚未设置）
     default_llm_config_id: Optional[int] = Field(
         default=None,
-        foreign_key="llm_setting.id",  # 改为 llm_setting
+        foreign_key="llm_setting.id",
         description="默认使用的 LLM 配置 ID"
     )
     
