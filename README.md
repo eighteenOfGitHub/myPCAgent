@@ -17,6 +17,11 @@
 
 ## 🧩 二、版本新增
 
+### v0.2.9 数据库版本管理
+
+ - feat: 集成 Alembic 实现数据库版本管理与迁移
+ - docs: 编写 Alembic 使用手册，指导开发者如何创建/应用迁移脚本
+
 ### v0.2.8 preference_setting_ui相关
 
  - feat: 下拉框默认模型添加（default model）用于显示区别
@@ -73,9 +78,11 @@
 |   generate_tree.bat
 |   README.md
 |   start.bat
+|   start_debug.bat
 |   tree.txt
 |   
 +---backend
+|   |   alembic.ini
 |   |   main.py
 |   |   __init__.py
 |   |   
@@ -108,7 +115,7 @@
 |   |       
 |   +---db_models
 |   |       chat_models.py
-|   |       user_config.py
+|   |       setting_models.py
 |   |       __init__.py
 |   |       
 |   +---logs
@@ -118,8 +125,14 @@
 |   |       logging_middleware.py
 |   |       
 |   +---migrations
-|   |       __init__.py
-|   |       
+|   |   |   env.py
+|   |   |   README
+|   |   |   script.py.mako
+|   |   |   
+|   |   \---versions
+|   |           2c572c105ed4_rename_all_tables_to_snake_case.py
+|   |           8f2b36a21551_initial_migration_create_tables.py
+|   |           
 |   \---services
 |           chat_service.py
 |           greeting_service.py
@@ -137,22 +150,35 @@
 |   |   +---services
 |   |   \---sys
 |   |           AI编程规范.md
+|   |           Alembic 数据库版本管理手册.md
 |   |           前端服务（gradio）开发规范与流程速查手册.md
 |   |           后端服务开发规范与流程速查手册.md
 |   |           日志系统开发规范文档.md
 |   |           
-|   \---notes
-|       |   ideas.md
-|       |   
-|       +---notes_from_error
-|       |       database_note.md
-|       |       logging_note.md
-|       |       project_note.md
-|       |       python_note.md
-|       |       
-|       \---systematic_note
-|               github代码管理与协作开发规范.md
-|               
+|   +---notes
+|   |   |   ideas.md
+|   |   |   
+|   |   +---notes_from_error
+|   |   |       database_note.md
+|   |   |       logging_note.md
+|   |   |       project_note.md
+|   |   |       python_note.md
+|   |   |       
+|   |   \---systematic_note
+|   |           github代码管理与协作开发规范.md
+|   |           
+|   +---plans
+|   |       26_2_1_chat.md
+|   |       
+|   \---references
+|       \---chatbot
+|           |   info.md
+|           |   modelscope_gradio.py
+|           |   
+|           \---md_images
+|                   chatbot_ui_index.png
+|                   chatbot_ui_qa.png
+|                   
 +---frontend
 |   |   app.py
 |   |   __init__.py
@@ -183,8 +209,7 @@
         llm_setting_schemas.py
         user_preference_schemas.py
         __init__.py
-
-
+        
 ```
 
 ## 🧪 四、技术选型与配置管理  
