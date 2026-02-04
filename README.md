@@ -17,6 +17,11 @@
 
 ## 🧩 二、版本新增
 
+### v0.3.0 default_setting相关
+
+ - factor：重命名 preference_setting 为 default_setting
+
+
 ### v0.2.9 数据库版本管理
 
  - feat: 集成 Alembic 实现数据库版本管理与迁移
@@ -92,10 +97,10 @@
 |   |   |   
 |   |   \---endpoints
 |   |           chat_api.py
+|   |           default_setting_api.py
 |   |           greeting_api.py
 |   |           health_api.py
 |   |           llm_setting_api.py
-|   |           user_preference_api.py
 |   |           __init__.py
 |   |           
 |   +---core
@@ -135,9 +140,9 @@
 |   |           
 |   \---services
 |           chat_service.py
+|           default_setting_service.py
 |           greeting_service.py
 |           llm_setting_service.py
-|           user_preference_service.py
 |           __init__.py
 |           
 +---config
@@ -186,8 +191,8 @@
 |   +---handlers
 |   |       chat_handler.py
 |   |       dashboard_handler.py
+|   |       default_setting_handler.py
 |   |       llm_setting_handler.py
-|   |       preference_setting_handler.py
 |   |       
 |   \---ui
 |       |   main_layout_ui.py
@@ -196,18 +201,18 @@
 |               agent_ui.py
 |               chat_ui.py
 |               dashboard_ui.py
+|               default_setting_ui.py
 |               llm_setting_ui.py
-|               preference_setting_ui.py
 |               settings_ui.py
 |               __init__.py
 |               
 \---shared
         chat_schemas.py
         crypto.py
+        default_setting_schemas.py
         general_schemas.py
         greeting_schemas.py
         llm_setting_schemas.py
-        user_preference_schemas.py
         __init__.py
         
 ```
