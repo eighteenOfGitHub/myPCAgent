@@ -2,18 +2,17 @@
 
 import os
 from typing import List, Optional, Generator
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import desc
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
-# from langchain_anthropic import ChatAnthropic
 from langchain_ollama import ChatOllama
 
 from shared.chat_schemas import ChatTurnResponse
 from backend.db_models.chat_models import LLMConfig, ChatSession, ChatMessage
 from backend.services.llm_setting_service import LLMSettingService 
-from backend.core.database import get_session
+from backend.core.database import get_db_session
 
 
 
@@ -24,7 +23,7 @@ class ChatService:
     """
 
     def __init__(self):
-        self._session = next(get_session())
+        pass
 
     def _get_llm_client(self, config: LLMConfig):
         """根据配置创建 LangChain LLM 客户端"""
@@ -56,26 +55,30 @@ class ChatService:
             raise ValueError(f"不支持的 LLM 提供商: {config.provider}")
 
     def create_session(self, title: str, config_id: int) -> ChatSession:
-        session = ChatSession(title=title, config_id=config_id)
-        self._session.add(session)
-        self._session.commit()
-        self._session.refresh(session)
-        return session
+        session_obj = ChatSession(title=title, config_id=config_id)
+        with get_db_session() as session:
+            session.add(session_obj)
+            session.commit()
+            session.refresh(session_obj)
+        return session_obj
 
     def get_session(self, session_id: int) -> Optional[ChatSession]:
-        return self._session.get(ChatSession, session_id)
+        with get_db_session() as session:
+            return session.get(ChatSession, session_id)
 
     def list_sessions(self) -> List[ChatSession]:
         """获取所有聊天会话，按更新时间倒序排列"""
-        return self._session.query(ChatSession).order_by(desc(ChatSession.updated_at)).all()
+        with get_db_session() as session:
+            return session.query(ChatSession).order_by(desc(ChatSession.updated_at)).all()
 
     def get_session_messages(self, session_id: int) -> List[ChatMessage]:
-        return (
-            self._session.query(ChatMessage)
-            .filter(ChatMessage.session_id == session_id)
-            .order_by(ChatMessage.created_at)
-            .all()
-        )
+        with get_db_session() as session:
+            return (
+                session.query(ChatMessage)
+                .filter(ChatMessage.session_id == session_id)
+                .order_by(ChatMessage.created_at)
+                .all()
+            )
 
     def _save_message(
         self,
@@ -92,9 +95,10 @@ class ChatService:
             llm_provider=llm_provider,
             llm_model_name=llm_model_name,
         )
-        self._session.add(message)
-        self._session.commit()
-        self._session.refresh(message)
+        with get_db_session() as session:
+            session.add(message)
+            session.commit()
+            session.refresh(message)
         return message
 
     def _build_history(self, session_id: int) -> list:
@@ -145,9 +149,10 @@ class ChatService:
         )
 
         # 5. 更新会话时间
-        session.updated_at = datetime.utcnow()
-        self._session.add(session)
-        self._session.commit()
+        session.updated_at = datetime.now(timezone.utc)
+        with get_db_session() as db_session:
+            db_session.add(session)
+            db_session.commit()
 
         return ChatTurnResponse(
             session_id=session_id,
@@ -182,12 +187,13 @@ class ChatService:
             yield f"[ERROR: {str(e)}]"
 
     def delete_session(self, session_id: int) -> bool:
-        session = self.get_session(session_id)
-        if session:
-            self._session.delete(session)
-            self._session.commit()
-            return True
+        with get_db_session() as session:
+            session_obj = session.get(ChatSession, session_id)
+            if session_obj:
+                session.delete(session_obj)
+                session.commit()
+                return True
         return False
 
     def close(self):
-        self._session.close()
+        pass
