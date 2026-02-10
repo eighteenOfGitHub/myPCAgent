@@ -17,6 +17,12 @@
 
 ## 🧩 二、版本新增
 
+### v0.2.12 chatbot功能实现
+
+ - feat：`DefaultSettingService`、`LLMSettingService` 添加缓存机制，减少数据库访问频率，提高性能；同时给chat_service暴露接口，为以便后chat_service调用
+ - feat（未实现）：在 `LLMSettingService` 中新增 `get_active()` 方法，用于获取当前激活的 LLM 配置
+
+
 ### v0.2.11 前端不同页面间状态共享
 
  - factor：llm_setting的数据初始化从llm_setting_ui迁移到main_layout_ui中，避免多次请求后端接口

@@ -16,13 +16,39 @@ from backend.db_models.setting_models import LLMSetting
 logger = logging.getLogger(__name__)
 
 class LLMSettingService:
-    """LLM 配置服务（支持多配置，ID=1 为默认活跃配置）"""
+    """LLM 配置服务（支持多配置，带缓存机制）"""
     _instance = None
+    _cached_configs: Optional[List[LLMSetting]] = None
+    _cached_configs_dict: Optional[Dict[int, LLMSetting]] = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
+
+    def __init__(self):
+        """初始化时从数据库加载配置到缓存"""
+        if self._cached_configs is None:
+            self._load_from_database()
+
+    def _load_from_database(self) -> None:
+        """从数据库加载所有 LLM 配置到缓存"""
+        with get_db_session() as session:
+            configs = session.exec(select(LLMSetting)).all()
+            # 创建独立的对象副本（脱离 session）
+            self._cached_configs = [
+                LLMSetting(
+                    id=cfg.id,
+                    provider=cfg.provider,
+                    model_name=cfg.model_name,
+                    api_key=cfg.api_key,
+                    base_url=cfg.base_url
+                )
+                for cfg in configs
+            ]
+            # 构建字典索引
+            self._cached_configs_dict = {cfg.id: cfg for cfg in self._cached_configs}
+            logger.info("LLM 配置已加载到缓存，共 %d 条", len(self._cached_configs))
 
     @staticmethod
     def _is_likely_env_var_name(s: str) -> bool:
@@ -35,7 +61,7 @@ class LLMSettingService:
         api_key_input: str,
         base_url: Optional[str] = None,
     ) -> LLMSetting:
-        """创建一个新的 LLM 配置（可用于保存多个模型预设）"""
+        """创建一个新的 LLM 配置（同步数据库和缓存）"""
         # 修改：当 provider 为 ollama 时，允许 api_key_input 为空
         if not api_key_input and provider.lower() != "ollama":
             raise ValueError("API Key 不能为空")
@@ -68,37 +94,51 @@ class LLMSettingService:
             config.model_name
         )
 
-        return config
+        # 同步更新缓存
+        new_cached_config = LLMSetting(
+            id=config.id,
+            provider=config.provider,
+            model_name=config.model_name,
+            api_key=config.api_key,
+            base_url=config.base_url
+        )
+        self._cached_configs.append(new_cached_config)
+        self._cached_configs_dict[config.id] = new_cached_config
+
+        return new_cached_config
 
     def get_by_id(self, config_id: int) -> Optional[LLMSetting]:
-        """根据 ID 获取配置"""
-        with get_db_session() as session:
-            config = session.get(LLMSetting, config_id)
-            if config is None:
-                logger.debug("LLM configuration not found for config_id=%d", config_id)
-            return config
+        """根据 ID 获取配置（从缓存读取）"""
+        if self._cached_configs is None:
+            self._load_from_database()
+        
+        config = self._cached_configs_dict.get(config_id)
+        if config is None:
+            logger.debug("LLM configuration not found for config_id=%d", config_id)
+        return config
 
     def list_basic_configs(self) -> List[Dict[str, Any]]:
-        """供前端下拉选择：仅返回 id / provider / model_name"""
-        with get_db_session() as session:
-            rows = session.exec(
-                select(LLMSetting.id, LLMSetting.provider, LLMSetting.model_name)
-            ).all()
-            logger.debug("Retrieved basic LLM configurations. Count: %d", len(rows))
-            return [
-                {"id": row[0], "provider": row[1], "model_name": row[2]}
-                for row in rows
-            ]
+        """供前端下拉选择：仅返回 id / provider / model_name（从缓存读取）"""
+        if self._cached_configs is None:
+            self._load_from_database()
+        
+        result = [
+            {"id": cfg.id, "provider": cfg.provider, "model_name": cfg.model_name}
+            for cfg in self._cached_configs
+        ]
+        logger.debug("Retrieved basic LLM configurations. Count: %d", len(result))
+        return result
 
     def get_all(self) -> List[LLMSetting]:
-        """获取所有 LLM 配置（完整字段）"""
-        with get_db_session() as session:
-            configs = session.exec(select(LLMSetting)).all()
-            logger.debug("Retrieved all LLM configurations. Count: %d", len(configs))
-            return configs
+        """获取所有 LLM 配置（完整字段，从缓存读取）"""
+        if self._cached_configs is None:
+            self._load_from_database()
+        
+        logger.debug("Retrieved all LLM configurations. Count: %d", len(self._cached_configs))
+        return self._cached_configs.copy()  # 返回副本避免外部修改
 
     def delete(self, config_id: int) -> bool:
-        """ 删除指定配置 """
+        """删除指定配置（同步数据库和缓存）"""
         with get_db_session() as session:
             config = session.get(LLMSetting, config_id)
             if not config:
@@ -108,7 +148,46 @@ class LLMSettingService:
             session.commit()
         
         logger.info("LLM configuration deleted successfully. config_id=%d", config_id)
+        
+        # 同步更新缓存
+        if config_id in self._cached_configs_dict:
+            del self._cached_configs_dict[config_id]
+            self._cached_configs = [cfg for cfg in self._cached_configs if cfg.id != config_id]
+        
         return True
+
+    # --- 新增：便捷访问接口 ---
+    def get_config_count(self) -> int:
+        """获取配置总数"""
+        if self._cached_configs is None:
+            self._load_from_database()
+        return len(self._cached_configs)
+
+    def get_configs_by_provider(self, provider: str) -> List[LLMSetting]:
+        """根据 provider 筛选配置"""
+        if self._cached_configs is None:
+            self._load_from_database()
+        
+        provider_lower = provider.lower()
+        return [cfg for cfg in self._cached_configs if cfg.provider.lower() == provider_lower]
+
+    def get_decrypted_api_key(self, config_id: int) -> Optional[str]:
+        """获取解密后的 API Key（用于其他服务）"""
+        config = self.get_by_id(config_id)
+        if not config or not config.api_key:
+            return None
+        
+        try:
+            return decrypt_text(config.api_key)
+        except Exception as e:
+            logger.error("Failed to decrypt API key for config_id=%d: %s", config_id, e)
+            return None
+
+    def reload_from_database(self) -> List[LLMSetting]:
+        """手动重新加载数据库中的所有配置到缓存"""
+        self._load_from_database()
+        logger.info("已从数据库重新加载 LLM 配置")
+        return self._cached_configs.copy()
 
     # --- 新增：使用 langchain 测试连通性方法 ---
     def test_connection(
