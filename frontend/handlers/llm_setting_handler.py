@@ -92,7 +92,7 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
     """Handler function to fetch all LLM configurations from the backend API."""
     try:
         response = requests.get(
-            url=f"{API_BASE}/settings/llm/",
+            url=f"{API_BASE}/settings/llm",
             timeout=30
         )
 
@@ -111,20 +111,6 @@ def get_all_llm_configs() -> tuple[bool, list | str]:
         return False, f"请求发生错误: {str(e)}"
     except Exception as e:
         return False, f"发生未知错误: {str(e)}"
-
-def fetch_llm_basic_options() -> List[Tuple[str, int]]:
-    """获取下拉可选项，返回 [(label, id), ...]"""
-    try:
-        resp = requests.get(f"{API_BASE}/settings/llm/basic", timeout=10)
-        resp.raise_for_status()
-        items = resp.json()
-        validated = [LLMConfigBasicResponse.model_validate(item) for item in items]
-        return [
-            (f"{item.provider.value} / {item.model_name}", item.id)
-            for item in validated
-        ]
-    except Exception:
-        return []
 
 def fetch_default_llm_config_id() -> Optional[int]:
     """获取后端保存的默认 LLM 配置 ID，失败返回 None"""
@@ -146,6 +132,13 @@ def set_default_llm_config(config_id: int | None) -> tuple[bool, str, int | None
         return True, "Saved default model successfully.", result.default_llm_config_id
     except Exception as e:
         return False, f"Save default model failed: {e}", None
+
+
+
+
+
+
+### Helper functions for error handling and data formatting
 
 def _get_error_detail(response):
     try:

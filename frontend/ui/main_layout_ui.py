@@ -10,25 +10,19 @@ def create_gradio_interface():
     """
     
     # --- 辅助函数（数据/事件逻辑） ---
-    def _init_llm_state():
-        """初始化 LLM 配置状态（跨页面共享）"""
-        configs, default_id = fetch_llm_state()
-        return configs, default_id
-    
-    def _init_sessions():
-        """初始化会话列表"""
-        return load_session_list()
-    
     def _sync_chat_dropdown(configs, default_id):
         """监听状态变化，更新 Chat 页面下拉框"""
         choices = build_choices_from_configs(configs, default_id)
         return gr.update(choices=choices, value=default_id)
     
+    # 🔥 在 UI 渲染前先加载数据
+    initial_configs, initial_default_id = fetch_llm_state()
+    
     # --- UI 布局 ---
     with gr.Blocks(title="PC Agent") as demo:
-        # 创建共享状态（初始为空，由 .load() 填充）
-        llm_configs_state = gr.State(value=[])
-        default_id_state = gr.State(value=None)
+        # 创建共享状态（使用预加载的数据初始化）
+        llm_configs_state = gr.State(value=initial_configs)
+        default_id_state = gr.State(value=initial_default_id)
         
         with gr.Tabs():
             with gr.Tab("🏠 Dashboard"):
@@ -51,23 +45,7 @@ def create_gradio_interface():
 
         # --- 控件绑定（集中注册） ---
         
-        # 1️⃣ 页面加载时初始化 LLM 配置（跨页面共享）
-        demo.load(
-            fn=_init_llm_state,
-            inputs=[],
-            outputs=[llm_configs_state, default_id_state],
-            show_progress="hidden"
-        )
-        
-        # 2️⃣ 页面加载时初始化会话列表（Chat 页面专用）
-        demo.load(
-            fn=_init_sessions,
-            inputs=[],
-            outputs=[session_dropdown],
-            show_progress="hidden"
-        )
-        
-        # 3️⃣ Settings 修改时同步到 Chat（状态变化触发）
+        # Settings 修改时同步到 Chat（状态变化触发）
         llm_configs_state.change(
             fn=_sync_chat_dropdown,
             inputs=[llm_configs_state, default_id_state],
