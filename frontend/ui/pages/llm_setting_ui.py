@@ -48,27 +48,24 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
     def _on_default_save(default_llm_id, current_configs):
         success, msg, _ = set_default_llm_config(default_llm_id)
         if not success:
+            gr.Error(f"❌ {msg}", duration=3)
             return (
                 gr.update(),
                 gr.update(),
-                gr.update(value=f"❌ {msg}", visible=True),
-                gr.update(active=True),
             )
+        gr.Info("✅ Saved default model.", duration=3)
         return (
             current_configs,
             default_llm_id,
-            gr.update(value="✅ Saved default model.", visible=True),
-            gr.update(active=True),
         )
 
     def _on_delete_model(selected_id, current_configs, current_default_id):
         """删除模型并刷新状态"""
         if not selected_id:
+            gr.Warning("⚠️ 请选择要删除的模型", duration=3)
             return (
                 gr.update(),
                 gr.update(),
-                gr.update(value="⚠️ 请选择要删除的模型", visible=True),
-                gr.update(active=True),
                 current_configs,
                 current_default_id,
             )
@@ -82,30 +79,27 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
                 # 如果删除的是默认模型，清空默认ID
                 new_default_id = None if selected_id == current_default_id else current_default_id
                 
+                gr.Info("✅ 模型已成功删除", duration=3)
                 return (
                     gr.update(choices=_build_delete_choices(configs), value=None),
                     gr.update(open=False),
-                    gr.update(value="✅ 模型已成功删除", visible=True),
-                    gr.update(active=True),
                     configs,
                     new_default_id,
                 )
             else:
+                gr.Error("❌ 删除失败，请重试", duration=3)
                 return (
                     gr.update(),
                     gr.update(),
-                    gr.update(value="❌ 删除失败，请重试", visible=True),
-                    gr.update(active=True),
                     current_configs,
                     current_default_id,
                 )
                 
         except Exception as e:
+            gr.Error(f"❌ 删除时发生错误: {str(e)}", duration=3)
             return (
                 gr.update(),
                 gr.update(),
-                gr.update(value=f"❌ 删除时发生错误: {str(e)}", visible=True),
-                gr.update(active=True),
                 current_configs,
                 current_default_id,
             )
@@ -119,16 +113,15 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
         try:
             provider_enum = LLMProvider(provider_val)
         except ValueError:
+            gr.Error(f"❌ 无效的 Provider: {provider_val}", duration=3)
             return (
                 gr.update(),
                 gr.update(),
                 gr.update(),
                 gr.update(),
-                gr.update(visible=True, value=f"❌ 无效的 Provider: {provider_val}"),
                 gr.update(),
                 gr.update(),
                 gr.update(),
-                gr.update(active=True),
             )
 
         success, message = submit_new_llm_config(
@@ -140,40 +133,32 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
 
         if success:
             configs = _fetch_configs()
+            gr.Info(f"✅ {message}", duration=3)
             return (
                 gr.update(value=None),
                 gr.update(value=""),
                 gr.update(value=""),
                 gr.update(value=""),
-                gr.update(visible=True, value=f"✅ {message}"),
                 gr.update(open=False),
                 configs,
                 current_default_id,
-                gr.update(active=True),
             )
         else:
+            gr.Error(f"❌ {message}", duration=3)
             return (
                 gr.update(),
                 gr.update(),
                 gr.update(),
                 gr.update(),
-                gr.update(visible=True, value=f"❌ {message}"),
                 gr.update(),
                 gr.update(),
                 gr.update(),
-                gr.update(active=True),
             )
 
     def _delayed_close_accordion():
         import time
         time.sleep(3)
         return gr.update(open=False)
-
-    def _hide_default_status():
-        return (
-            gr.update(value="", visible=False),
-            gr.update(active=False),
-        )
 
     # 如果没有传入共享状态，则创建本地状态并初始化
     if llm_configs_state is None or default_id_state is None:
@@ -267,9 +252,6 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
                 with gr.Column(scale=2, min_width=120):
                     add_model_submit_btn = gr.Button("✅ Submit", variant="primary", size="sm")
 
-        shared_status_text = gr.Textbox(value="", show_label=False, interactive=False, visible=False)
-        shared_status_timer = gr.Timer(3.0, active=False)
-
         # --- 控件绑定（集中注册） ---
         provider.change(
             fn=_on_provider_change,
@@ -290,7 +272,7 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
         add_model_submit_btn.click(
             fn=_submit_and_refresh_state,
             inputs=[provider, model_name, api_key, base_url, default_id_state],
-            outputs=[provider, model_name, api_key, base_url, shared_status_text, add_accordion, llm_configs_state, default_id_state, shared_status_timer]
+            outputs=[provider, model_name, api_key, base_url, add_accordion, llm_configs_state, default_id_state]
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
@@ -305,7 +287,7 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
         default_submit_btn.click(
             fn=_on_default_save,
             inputs=[default_llm_dropdown, llm_configs_state],
-            outputs=[llm_configs_state, default_id_state, shared_status_text, shared_status_timer],
+            outputs=[llm_configs_state, default_id_state],
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
@@ -315,7 +297,7 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
         delete_model_btn.click(
             fn=_on_delete_model,
             inputs=[delete_dropdown, llm_configs_state, default_id_state],
-            outputs=[delete_dropdown, delete_accordion, shared_status_text, shared_status_timer, llm_configs_state, default_id_state],
+            outputs=[delete_dropdown, delete_accordion, llm_configs_state, default_id_state],
         ).then(
             fn=_sync_ui_from_state,
             inputs=[llm_configs_state, default_id_state],
@@ -325,12 +307,6 @@ def create_llm_models_setting_ui(visible=True, llm_configs_state=None, default_i
             inputs=[],
             outputs=[delete_accordion],
             show_progress="hidden"
-        )
-
-        shared_status_timer.tick(
-            fn=_hide_default_status,
-            inputs=[],
-            outputs=[shared_status_text, shared_status_timer],
         )
 
     # 返回状态引用，供主布局监听
