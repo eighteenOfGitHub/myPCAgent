@@ -29,7 +29,7 @@ def create_gradio_interface():
                 dashboard()
             
             with gr.Tab("💬 Chat"):
-                session_dropdown, chat_model_dropdown = chat(
+                chat_model_dropdown = chat(
                     llm_configs_state=llm_configs_state, 
                     default_id_state=default_id_state
                 )
