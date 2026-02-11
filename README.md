@@ -17,10 +17,12 @@
 
 ## 🧩 二、版本新增
 
-### v0.2.12 chatbot功能实现
+### v0.2.12 chatbot（非流式）功能实现
 
- - feat：`DefaultSettingService`、`LLMSettingService` 添加缓存机制，减少数据库访问频率，提高性能；同时给chat_service暴露接口，为以便后chat_service调用
- - feat（未实现）：在 `LLMSettingService` 中新增 `get_active()` 方法，用于获取当前激活的 LLM 配置
+ - feat：`DefaultSettingService` 新增 `get_default_llm_config_id()` 方法，快速获取默认 LLM 配置 ID
+ - feat：`LLMSettingService` 新增 `get_active()` 方法，自动从 `DefaultSettingService` 获取当前激活的 LLM 配置
+ - refactor：`ChatService._get_llm_client()` 重写，使用 `LLMSettingService.get_decrypted_api_key()` 自动解密 API Key，无需手动处理环境变量
+ - feat：`DefaultSettingService`、`LLMSettingService` 添加缓存机制，减少数据库访问频率，提高性能
 
 
 ### v0.2.11 前端不同页面间状态共享

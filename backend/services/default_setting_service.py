@@ -116,3 +116,9 @@ class DefaultSettingService:
         self._load_from_database()
         logger.info("已从数据库重新加载默认设置")
         return self._cached_setting
+
+    def get_default_llm_config_id(self) -> Optional[int]:
+        """获取默认 LLM 配置 ID（从缓存读取）"""
+        if self._cached_setting is None:
+            self._load_from_database()
+        return self._cached_setting.default_llm_config_id

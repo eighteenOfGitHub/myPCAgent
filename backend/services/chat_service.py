@@ -4,6 +4,7 @@ import os
 from typing import List, Optional, Generator
 from datetime import datetime, timezone
 from sqlalchemy import desc
+from sqlmodel import select
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
@@ -26,12 +27,25 @@ class ChatService:
         pass
 
     def _get_llm_client(self, config: LLMSetting):
-        """根据配置创建 LangChain LLM 客户端"""
-        api_key = os.getenv(config.api_key_name)
-        if not api_key:
-            raise ValueError(f"环境变量 {config.api_key_name} 未设置")
-
+        """根据配置创建 LangChain LLM 客户端（自动解密 API Key）"""
+        # 使用 LLMSettingService 获取解密后的 API Key
+        llm_service = LLMSettingService()
+        api_key = llm_service.get_decrypted_api_key(config.id)
+        
         provider = config.provider.lower()
+        
+        # Ollama 不需要 API Key
+        if provider == "ollama":
+            return ChatOllama(
+                model=config.model_name,
+                base_url=config.base_url or "http://localhost:11434",
+                temperature=0.7,
+            )
+        
+        # 其他 provider 需要 API Key
+        if not api_key:
+            raise ValueError(f"LLM 配置 ID={config.id} 的 API Key 解密失败或为空")
+        
         if provider == "openai":
             return ChatOpenAI(
                 model=config.model_name,
@@ -45,12 +59,6 @@ class ChatService:
         #         api_key=api_key,
         #         temperature=0.7,
         #     )
-        elif provider == "ollama":
-            return ChatOllama(
-                model=config.model_name,
-                base_url=config.base_url or "http://localhost:11434",
-                temperature=0.7,
-            )
         else:
             raise ValueError(f"不支持的 LLM 提供商: {config.provider}")
 
@@ -69,16 +77,17 @@ class ChatService:
     def list_sessions(self) -> List[ChatSession]:
         """获取所有聊天会话，按更新时间倒序排列"""
         with get_db_session() as session:
-            return session.query(ChatSession).order_by(desc(ChatSession.updated_at)).all()
+            statement = select(ChatSession).order_by(desc(ChatSession.updated_at))
+            return session.exec(statement).all()
 
     def get_session_messages(self, session_id: int) -> List[ChatMessage]:
         with get_db_session() as session:
-            return (
-                session.query(ChatMessage)
-                .filter(ChatMessage.session_id == session_id)
+            statement = (
+                select(ChatMessage)
+                .where(ChatMessage.session_id == session_id)
                 .order_by(ChatMessage.created_at)
-                .all()
             )
+            return session.exec(statement).all()
 
     def _save_message(
         self,

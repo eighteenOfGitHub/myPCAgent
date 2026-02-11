@@ -12,6 +12,7 @@ from shared.crypto import decrypt_text
 
 from backend.core.database import get_db_session
 from backend.db_models.setting_models import LLMSetting
+from backend.services.default_setting_service import DefaultSettingService
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +189,23 @@ class LLMSettingService:
         self._load_from_database()
         logger.info("已从数据库重新加载 LLM 配置")
         return self._cached_configs.copy()
+
+    def get_active(self) -> Optional[LLMSetting]:
+        """获取当前激活的 LLM 配置（通过 DefaultSettingService）"""
+        default_service = DefaultSettingService()
+        active_id = default_service.get_default_llm_config_id()
+        
+        if active_id is None:
+            logger.warning("未设置默认 LLM 配置")
+            return None
+        
+        config = self.get_by_id(active_id)
+        if config is None:
+            logger.error("默认 LLM 配置 ID=%d 不存在", active_id)
+            return None
+        
+        logger.debug("获取激活的 LLM 配置。config_id=%d, provider=%s", active_id, config.provider)
+        return config
 
     # --- 新增：使用 langchain 测试连通性方法 ---
     def test_connection(
