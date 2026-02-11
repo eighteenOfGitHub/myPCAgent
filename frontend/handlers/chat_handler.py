@@ -83,7 +83,7 @@ def load_messages(session_id: int) -> Tuple[List, List]:
         print(f"加载消息失败: {e}")
         return [], []
 
-def stream_chat(session_id: int, user_message: str, history: List) -> Generator:
+def chat_turn_stream(session_id: int, user_message: str, history: List) -> Generator:
     """流式发送消息并生成响应"""
     if not session_id:
         yield [(f"[ERROR: 请先创建或选择一个会话]", "")]
@@ -115,3 +115,28 @@ def stream_chat(session_id: int, user_message: str, history: List) -> Generator:
         error_msg = _handle_api_error(e)
         history[-1] = (user_message, error_msg)
         yield history
+
+def chat_turn(session_id: int, user_message: str, history: List) -> List:
+    """发送消息并获取完整响应（非流式）"""
+    if not session_id:
+        error_msg = "[ERROR: 请先创建或选择一个会话]"
+        return [(error_msg, "")]
+    
+    try:
+        resp = requests.post(
+            f"{API_BASE}/chat/turn",
+            json={"session_id": session_id, "user_message": user_message},
+            timeout=60
+        )
+        resp.raise_for_status()
+        # 使用 ChatTurnResponse 验证响应
+        turn_response = ChatTurnResponse.model_validate(resp.json())
+        
+        # 更新历史记录
+        history.append((user_message, turn_response.assistant_reply))
+        
+        return history
+    except Exception as e:
+        error_msg = _handle_api_error(e)
+        history.append((user_message, error_msg))
+        return history
