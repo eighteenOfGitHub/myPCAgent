@@ -23,11 +23,26 @@ def render(llm_configs_state=None, default_id_state=None):
         updated_cache[session_id] = history
         return updated_cache, history
 
+    def _append_user_message(session_id, user_message, cache):
+        """先乐观写入用户消息到缓存与 Chatbot"""
+        if not user_message:
+            return cache, cache.get(session_id, [])
+        history = list(cache.get(session_id, []))
+        history.append({"role": "user", "content": user_message, "_pending": True})
+        updated_cache = dict(cache)
+        updated_cache[session_id] = history
+        return updated_cache, history
+
     def _send_message(session_id, user_message, cache, config_id):
         """发送消息（非流式）并写入缓存"""
         if not user_message:
             return cache, cache.get(session_id, [])
-        history = chat_turn(session_id, user_message, cache.get(session_id, []), config_id)
+        history = chat_turn(
+            session_id,
+            user_message,
+            [m for m in cache.get(session_id, []) if not (isinstance(m, dict) and m.get("_pending"))],
+            config_id,
+        )
         updated_cache = dict(cache)
         updated_cache[session_id] = history
         return updated_cache, history
@@ -104,6 +119,10 @@ def render(llm_configs_state=None, default_id_state=None):
         )
 
     msg_input.submit(
+        _append_user_message,
+        inputs=[session_id_state, msg_input, chat_history_state],
+        outputs=[chat_history_state, chatbot],
+    ).then(
         _send_message,
         inputs=[session_id_state, msg_input, chat_history_state, default_id_state],
         outputs=[chat_history_state, chatbot],
