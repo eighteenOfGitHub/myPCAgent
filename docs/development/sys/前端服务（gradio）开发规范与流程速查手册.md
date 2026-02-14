@@ -16,7 +16,7 @@
 - shared/*.py：与后端共享的请求/响应/枚举类型定义（前端只依赖这些类型约定）。
 
 三、页面范式（推荐骨架）
-- 组织顺序：1) 辅助函数 2) UI 布局 3) 控件绑定
+- 组织顺序：1) 辅助函数 2) 初始值获取与状态管理 3) UI 布局 4) 控件绑定
 
 ```python
 # --- 辅助函数（数据/事件逻辑） ---
@@ -24,6 +24,10 @@ def _initial_rows(): ...
 def _on_change(...): ...
 def _on_submit(...): ...
 def _refresh(): ...
+
+# --- 初始值获取与状态管理 ---
+initial_rows = _initial_rows()
+selection_state = gr.State(None)
 
 # --- UI 布局 ---
 with gr.Column(visible=True) as root:
@@ -41,7 +45,7 @@ with gr.Column(visible=True) as root:
         interactive=False,
         wrap=True,
         elem_id="table_id",
-        value=_initial_rows(),
+        value=initial_rows,
         type="array",
     )
     gr.HTML("""

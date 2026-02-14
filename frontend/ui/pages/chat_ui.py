@@ -11,20 +11,43 @@ from frontend.handlers.llm_setting_handler import build_choices_from_configs
 def render(llm_configs_state=None, default_id_state=None):
     """聊天页面：会话管理 + 对话交互（含完整事件绑定）"""
 
-    # 获取初始值用于下拉框
+    # --- 辅助函数（数据/事件逻辑） ---
+    def _load_messages(session_id, cache):
+        """优先从缓存获取历史，未命中再请求后端"""
+        if not session_id:
+            return cache, []
+        if session_id in cache:
+            return cache, cache[session_id]
+        history = load_messages(session_id)
+        updated_cache = dict(cache)
+        updated_cache[session_id] = history
+        return updated_cache, history
+
+    def _send_message(session_id, user_message, cache, config_id):
+        """发送消息（非流式）并写入缓存"""
+        if not user_message:
+            return cache, cache.get(session_id, [])
+        history = chat_turn(session_id, user_message, cache.get(session_id, []), config_id)
+        updated_cache = dict(cache)
+        updated_cache[session_id] = history
+        return updated_cache, history
+
+    def _new_chat():
+        """新建会话：重置会话ID、输入框、聊天记录"""
+        return None, "", gr.update(value=[])
+
+    # --- 初始值获取与状态管理 ---
     initial_configs = llm_configs_state.value if llm_configs_state else []
     initial_default_id = default_id_state.value if default_id_state else None
     initial_choices = build_choices_from_configs(initial_configs, initial_default_id)
     nav_items = load_session_list()
 
-    # 状态管理
     session_id_state = gr.State(None)
-    chat_history_state = gr.State({})  # {session_id: history_list}
+    chat_history_state = gr.State({})
     if llm_configs_state is None:
         llm_configs_state = gr.State(value=[])
     if default_id_state is None:
         default_id_state = gr.State(value=None)
-
 
     # --- UI 布局 ---
     with gr.Row():
@@ -43,7 +66,7 @@ def render(llm_configs_state=None, default_id_state=None):
                 with gr.Column(scale=1):
                     gr.Markdown("### 💬 聊天")
                 with gr.Column(scale=3):
-                    pass # 占位，保持布局   
+                    pass
                 with gr.Column(scale=1):
                     current_model_dropdown = gr.Dropdown(
                         label="当前模型",
@@ -52,12 +75,7 @@ def render(llm_configs_state=None, default_id_state=None):
                         interactive=True,
                         allow_custom_value=False,
                     )
-            
-            chatbot = gr.Chatbot(
-                elem_id="chat_display",
-                height=500,
-                label="对话历史",
-            )
+            chatbot = gr.Chatbot(elem_id="chat_display", height=500, label="对话历史")
             with gr.Row():
                 msg_input = gr.Textbox(
                     placeholder="请输入您的问题，按回车或点击发送...",
@@ -68,32 +86,12 @@ def render(llm_configs_state=None, default_id_state=None):
                 )
 
     # --- 控件绑定（集中注册） ---
-    # --- 控件绑定（集中注册） ---
-    
-    def _load_messages(session_id):
-        """加载会话消息"""
-        if not session_id:
-            return []
-        return load_messages(session_id)
-
-    def _send_message(session_id, user_message, history, config_id):
-        """发送消息（非流式）"""
-        if not user_message:
-            return history
-        return chat_turn(session_id, user_message, history, config_id)
-
-    # 新对话
     new_chat_btn.click(
-        lambda: (None, []),
+        _new_chat,
         inputs=[],
-        outputs=[session_id_state, chat_history_state],
-    ).then(
-        lambda: "", None, msg_input
-    ).then(
-        lambda: gr.update(value=[]), None, chatbot
+        outputs=[session_id_state, msg_input, chatbot],
     )
 
-    # 切换会话
     for btn, sid in nav_buttons:
         btn.click(
             lambda s=sid: s,
@@ -101,28 +99,19 @@ def render(llm_configs_state=None, default_id_state=None):
             outputs=[session_id_state],
         ).then(
             _load_messages,
-            inputs=[session_id_state],
-            outputs=[chat_history_state],
-        ).then(
-            lambda hist: gr.update(value=hist), 
-            inputs=[chat_history_state], 
-            outputs=[chatbot]
+            inputs=[session_id_state, chat_history_state],
+            outputs=[chat_history_state, chatbot],
         )
 
-    # 提交消息
     msg_input.submit(
         _send_message,
         inputs=[session_id_state, msg_input, chat_history_state, default_id_state],
-        outputs=[chat_history_state],
-    ).then(
-        lambda hist: gr.update(value=hist),
-        inputs=[chat_history_state],
-        outputs=[chatbot]
+        outputs=[chat_history_state, chatbot],
     ).then(
         lambda: "",
         None,
         msg_input
     )
-    
+
     return current_model_dropdown
 
