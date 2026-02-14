@@ -12,7 +12,7 @@ from langchain_ollama import ChatOllama
 
 from shared.chat_schemas import ChatTurnResponse
 from backend.db_models.chat_models import LLMSetting, ChatSession, ChatMessage
-from backend.services.llm_setting_service import LLMSettingService 
+from backend.services import get_llm_setting_service
 from backend.core.database import get_db_session
 
 
@@ -28,8 +28,7 @@ class ChatService:
 
     def _get_llm_client(self, config: LLMSetting):
         """根据配置创建 LangChain LLM 客户端（自动解密 API Key）"""
-        # 使用 LLMSettingService 获取解密后的 API Key
-        llm_service = LLMSettingService()
+        llm_service = get_llm_setting_service()
         api_key = llm_service.get_decrypted_api_key(config.id)
         
         provider = config.provider.lower()
@@ -129,7 +128,7 @@ class ChatService:
         if not session:
             raise ValueError(f"会话 ID {session_id} 不存在")
         
-        llm_service = LLMSettingService()
+        llm_service = get_llm_setting_service()
         config = None
         if config_id is not None:
             config = llm_service.get_by_id(config_id)

@@ -12,7 +12,7 @@ from shared.crypto import decrypt_text
 
 from backend.core.database import get_db_session
 from backend.db_models.setting_models import LLMSetting
-from backend.services.default_setting_service import DefaultSettingService
+from backend.services import get_default_setting_service
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +192,7 @@ class LLMSettingService:
 
     def get_active(self) -> Optional[LLMSetting]:
         """获取当前激活的 LLM 配置（通过 DefaultSettingService）"""
-        default_service = DefaultSettingService()
+        default_service = get_default_setting_service()
         active_id = default_service.get_default_llm_config_id()
         
         if active_id is None:

@@ -12,18 +12,10 @@ from shared.chat_schemas import (
     ChatTurnResponse,
 )
 from backend.services.chat_service import ChatService
+from backend.services import get_chat_service
 
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
-
-
-def get_chat_service():
-    service = ChatService()
-    try:
-        yield service
-    finally:
-        service.close()
-
 
 @router.post("/sessions", response_model=ChatSessionRead)
 async def create_session(

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 
-from backend.services.default_setting_service import DefaultSettingService
+from backend.services import get_default_setting_service
 from backend.db_models.setting_models import DefaultSetting
 from shared.default_setting_schemas import DefaultSettingResponse, SetDefaultLLMResponse
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/preference", tags=["Default Settings"])
 @router.get("", response_model=DefaultSettingResponse)
 def get_default_setting():
     """获取当前默认设置"""
-    service = DefaultSettingService()
+    service = get_default_setting_service()
     try:
         setting = service.get_setting()
         return setting
@@ -27,7 +27,7 @@ def set_default_llm_config(config_id: Optional[int] = None):
     设置默认 LLM 配置
     - config_id: LLMConfig 的 ID，None 表示清空默认
     """
-    service = DefaultSettingService()
+    service = get_default_setting_service()
     try:
         updated = service.update_default_llm_config(config_id)
         return {

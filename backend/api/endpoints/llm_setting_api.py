@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from typing import List
-from backend.services.llm_setting_service import LLMSettingService
+from backend.services import get_llm_setting_service
 from shared.llm_setting_schemas import (
     LLMConfigCreate,
     LLMConfigResponse,
@@ -19,7 +19,7 @@ def create_llm_config(
     """
     测试 LLM 连通性，如果成功则创建并保存配置。
     """
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     try:
         # 1. 先测试连通性
         test_result = service.test_connection(
@@ -61,7 +61,7 @@ def test_existing_config(config_id: int):
     """
     测试一个已存在的 LLM 配置。
     """
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     try:
         config = service.get_by_id(config_id)
         if not config:
@@ -89,7 +89,7 @@ def test_existing_config(config_id: int):
 @router.get("", response_model=List[LLMConfigResponse])
 def list_llm_configs():
     """列出所有 LLM 配置"""
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     try:
         configs = service.get_all()
         return [LLMConfigResponse.model_validate(c, from_attributes=True) for c in configs]
@@ -99,7 +99,7 @@ def list_llm_configs():
 @router.get("/basic", response_model=List[LLMConfigBasicResponse])
 def list_basic_llm_configs():
     """仅返回基础字段（id/provider/model_name），用于下拉选择。"""
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     try:
         return service.list_basic_configs()
     except Exception as e:
@@ -108,7 +108,7 @@ def list_basic_llm_configs():
 @router.get("/{config_id}", response_model=LLMConfigResponse)
 def get_llm_config(config_id: int):
     """获取指定 ID 的 LLM 配置"""
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     config = service.get_by_id(config_id)
     if not config:
         raise HTTPException(status_code=404, detail="LLM 配置不存在")
@@ -117,7 +117,7 @@ def get_llm_config(config_id: int):
 @router.delete("/{config_id}")
 def delete_llm_config(config_id: int):
     """删除指定 ID 的 LLM 配置"""
-    service = LLMSettingService()
+    service = get_llm_setting_service()
     deleted = service.delete(config_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="LLM 配置不存在或已删除")
