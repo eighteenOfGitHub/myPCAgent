@@ -81,6 +81,7 @@ async def chat_turn(
         response = service.chat_turn(
             session_id=request.session_id,
             user_message=request.user_message,
+            config_id=request.config_id,
         )
         return response
     except ValueError as ve:

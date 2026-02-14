@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pydantic import BaseModel
+from typing import Optional
 
 # --- Chat Session Schemas ---
 class ChatSessionCreate(BaseModel):
@@ -37,9 +38,9 @@ class ChatMessageRead(BaseModel):
 class ChatTurnRequest(BaseModel):
     session_id: int
     user_message: str | None = None
+    config_id: Optional[int] = None
 
 class ChatTurnResponse(BaseModel):
     session_id: int
-    user_message: str
     assistant_reply: str
     message_id: int

@@ -2,7 +2,7 @@
 
 import requests
 import json
-from typing import Generator, Tuple, List, Any
+from typing import Generator, Tuple, List, Any, Optional
 import gradio as gr
 
 from config.env_config import env_config
@@ -60,28 +60,26 @@ def create_new_session() -> Tuple[Any, int, List, List]:
         return (gr.Dropdown(), None, [], [(error_msg, "")])
 
 def load_messages(session_id: int) -> Tuple[List, List]:
-    """加载指定会话的消息历史"""
+    """加载指定会话的消息历史，返回 Gradio Chatbot 格式"""
+    if not session_id:
+        return []
     try:
         resp = requests.get(f"{API_BASE}/chat/sessions/{session_id}/messages", timeout=5)
         resp.raise_for_status()
-        # 使用 ChatMessageRead 验证响应
         messages = [ChatMessageRead.model_validate(m) for m in resp.json()]
         
+        # 转换为 Gradio Chatbot 格式
         history = []
-        chat_display = []
         for msg in messages:
-            if msg.role == "user":
-                history.append((msg.content, ""))
-                chat_display.append((msg.content, ""))
-            elif msg.role == "assistant":
-                if history:
-                    history[-1] = (history[-1][0], msg.content)
-                chat_display.append(("", msg.content))
+            history.append({
+                "role": msg.role,
+                "content": msg.content
+            })
         
-        return history, chat_display
+        return history
     except Exception as e:
         print(f"加载消息失败: {e}")
-        return [], []
+        return []
 
 def chat_turn_stream(session_id: int, user_message: str, history: List) -> Generator:
     """流式发送消息并生成响应"""
@@ -116,27 +114,45 @@ def chat_turn_stream(session_id: int, user_message: str, history: List) -> Gener
         history[-1] = (user_message, error_msg)
         yield history
 
-def chat_turn(session_id: int, user_message: str, history: List) -> List:
-    """发送消息并获取完整响应（非流式）"""
+def chat_turn(session_id: int, user_message: str, history: List, config_id: Optional[int] = None) -> List:
+    """发送消息并获取完整响应（非流式），返回 Gradio 格式历史"""
+    if not user_message:
+        return history
+    
     if not session_id:
-        error_msg = "[ERROR: 请先创建或选择一个会话]"
-        return [(error_msg, "")]
+        try:
+            _, session_id, _, _ = create_new_session()
+            if not session_id:
+                error_msg = "[ERROR: 创建新会话失败]"
+                return history + [
+                    {"role": "user", "content": user_message},
+                    {"role": "assistant", "content": error_msg}
+                ]
+        except Exception as e:
+            error_msg = _handle_api_error(e)
+            return history + [
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": error_msg}
+            ]
     
     try:
         resp = requests.post(
             f"{API_BASE}/chat/turn",
-            json={"session_id": session_id, "user_message": user_message},
+            json={"session_id": session_id, "user_message": user_message, "config_id": config_id},
             timeout=60
         )
         resp.raise_for_status()
-        # 使用 ChatTurnResponse 验证响应
         turn_response = ChatTurnResponse.model_validate(resp.json())
         
-        # 更新历史记录
-        history.append((user_message, turn_response.assistant_reply))
+        # 构建新的历史记录
+        return history + [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": turn_response.assistant_reply}
+        ]
         
-        return history
     except Exception as e:
         error_msg = _handle_api_error(e)
-        history.append((user_message, error_msg))
-        return history
+        return history + [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": error_msg}
+        ]

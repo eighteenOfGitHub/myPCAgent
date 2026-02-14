@@ -124,12 +124,20 @@ class ChatService:
     # ======================
     # 非流式：完整响应
     # ======================
-    def chat_turn(self, session_id: int, user_message: str) -> ChatTurnResponse:
+    def chat_turn(self, session_id: int, user_message: str, config_id:Optional[int] = None) -> ChatTurnResponse:
         session = self.get_session(session_id)
         if not session:
             raise ValueError(f"会话 ID {session_id} 不存在")
         
-        config = LLMSettingService().get_active()  # ← 直接获取全局配置
+        llm_service = LLMSettingService()
+        config = None
+        if config_id is not None:
+            config = llm_service.get_by_id(config_id)
+        elif config is None:
+            config = llm_service.get_active()
+
+        if config is None:
+            raise ValueError("未找到可用的 LLM 配置")
         
         # 1. 先保存用户消息（带快照）
         user_msg = self._save_message(
@@ -165,9 +173,8 @@ class ChatService:
 
         return ChatTurnResponse(
             session_id=session_id,
-            user_message=user_message,
-            assistant_reply=assistant_reply,
             message_id=assistant_msg.id,
+            assistant_reply=assistant_reply,
         )
 
     # ======================
