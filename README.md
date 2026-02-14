@@ -17,74 +17,83 @@
 
 ## 🧩 二、版本新增
 
-### v0.2.12 chatbot（非流式）功能实现
+> **更新类型说明**  
+> ✨ Feature - 新功能 | ⚡ Performance - 性能优化 | 🐛 Fix - 错误修复  
+> 🔧 Refactor - 重构 | 📝 Docs - 文档 | 🎨 UI/UX - 界面优化
 
- - feat：`DefaultSettingService` 新增 `get_default_llm_config_id()` 方法，快速获取默认 LLM 配置 ID
- - feat：`LLMSettingService` 新增 `get_active()` 方法，自动从 `DefaultSettingService` 获取当前激活的 LLM 配置
- - refactor：`ChatService._get_llm_client()` 重写，使用 `LLMSettingService.get_decrypted_api_key()` 自动解密 API Key，无需手动处理环境变量
- - feat：`DefaultSettingService`、`LLMSettingService` 添加缓存机制，减少数据库访问频率，提高性能
+### v0.2.12 聊天功能上线
 
+- ✨ **Feature**: 新增会话管理功能，支持保存和查看历史聊天记录
+- ✨ **Feature**: 实现文本对话功能，支持与 AI 模型进行交互
+- ✨ **Feature**: 支持在聊天时选择特定的 LLM 配置
+- ✨ **Feature**: 聊天界面自动加载当前激活的默认 LLM 模型
+- ⚡ **Performance**: 优化系统性能，减少重复数据加载
 
-### v0.2.11 前端不同页面间状态共享
+### v0.2.11 界面状态同步优化
 
- - factor：llm_setting的数据初始化从llm_setting_ui迁移到main_layout_ui中，避免多次请求后端接口
- - feat: llm_setting_ui返回状态引用，供主布局监听，实现不同页面间状态共享
- - feat: chat_ui实现default_llm_config_id状态更新
+- ⚡ **Performance**: 优化数据加载机制，避免重复请求降低系统负担
+- ✨ **Feature**: 实现跨页面状态共享，模型设置变更实时同步到聊天界面
+- 🎨 **UI/UX**: 提升用户体验，配置修改后无需手动刷新
 
-### v0.2.10 default_setting相关
+### v0.2.10 设置模块重构
 
- - factor：重命名 preference_setting 为 default_setting
-
+- 🔧 **Refactor**: 统一默认设置管理，命名更加清晰直观
 
 ### v0.2.9 数据库版本管理
 
- - feat: 集成 Alembic 实现数据库版本管理与迁移
- - docs: 编写 Alembic 使用手册，指导开发者如何创建/应用迁移脚本
+- ✨ **Feature**: 引入数据库迁移机制，支持平滑升级数据结构
+- 📝 **Docs**: 提供迁移操作文档，便于开发者维护数据库变更
 
-### v0.2.8 preference_setting_ui相关
+### v0.2.8 模型管理功能完善
 
- - feat: 下拉框默认模型添加（default model）用于显示区别
- - feat：重新设置默认模型后自动刷新下拉框
- - feat：preference_setting_ui界面美化（按钮同行，提示语自动消失）
- - feat：LLM模型删除功能（带下拉框选择与确认按钮）
- - factor：preference_setting_ui中default_llm部分迁移到llm_setting_ui中，使用gr.state管理数据，减少数据重复获取，提高前端性能
+- 🎨 **UI/UX**: 下拉框显示优化，默认模型标记更加醒目
+- ✨ **Feature**: 支持模型删除功能，提供二次确认防止误操作
+- 🎨 **UI/UX**: 界面布局优化，按钮排列更加紧凑合理
+- 🎨 **UI/UX**: 操作提示自动消失，减少界面干扰
+- ⚡ **Performance**: 优化数据获取流程，提升页面响应速度
 
-### v0.2.7
-- feat：设置页面加载时数据自动加载
-- fix: api_key传输前加密功能缺失，已补齐
-- factor：代码文件名加上功能后缀（例如：ui/user.py -> ui/user_ui.py）
-- factor：统一后端路由获取路径（来源env_config），并将要求写入前端ai开发规范中
+### v0.2.7 设置页面体验优化
 
-### v0.2.6
-- feat：默认下拉框内容功能获取实现
-- feat：下拉框刷新实现
-- feat：加载下拉框默认
-- feat：保存默认设置
+- ✨ **Feature**: 设置页面打开时自动加载已保存配置
+- 🔒 **Security**: 增强数据安全性，API 密钥传输前自动加密
+- 🔧 **Refactor**: 统一后端接口路径管理，提高系统稳定性
+- 🔧 **Refactor**: 优化文件命名规范，提升代码可维护性
 
-### v0.2.5
-- feat: 前端提交 LLM 配置前使用 Fernet 对 api_key 加密（shared/crypto）
-- feat: 后端 LLMSettingService 解密后调用，数据库存密文
-- chore: EnvConfig 缺失 FERNET_KEY 时自动生成并写回 env_config.yaml，确保前后端同钥
-- docs: 补充 EnvConfig 与监控/运维说明
+### v0.2.6 默认配置管理
 
-### v0.2.4
-- refactor: shared中schemas的响应体模型按照api/endpoint拆分到shared下的不同文件，按照对应endpoint命名
-- refactor: 移除热重载功能，简化启动流程
+- ✨ **Feature**: 实现默认模型下拉选择功能
+- ✨ **Feature**: 支持刷新模型列表，及时获取最新配置
+- ✨ **Feature**: 支持设置和保存默认 LLM 模型
 
-### v0.2.3
-- feat: 设置页面显示已保存模型
+### v0.2.5 数据安全增强
 
-### v0.2.2
-- bulid: 日志系统
-- faet: 前端分页
-- feat: 添加大模型配置
+- 🔒 **Security**: 新增 API 密钥加密功能，保护用户敏感信息
+- 🔒 **Security**: 系统启动时自动生成加密密钥，确保数据安全
+- 📝 **Docs**: 完善配置管理和运维文档
 
-### v0.2.1 
- - feat: 启动项与热重载  
- - fix: chatbox 历史聊天记录不显示
+### v0.2.4 代码结构优化
 
-### v0.2.0
- - build: 前后端分离
+- 🔧 **Refactor**: 优化数据模型组织结构，提升代码可读性
+- ⚡ **Performance**: 简化系统启动流程，提高启动速度
+
+### v0.2.3 模型配置可视化
+
+- ✨ **Feature**: 设置页面新增已保存模型列表展示
+
+### v0.2.2 系统基础设施完善
+
+- ✨ **Feature**: 建立完善的日志记录系统
+- ✨ **Feature**: 新增分页功能，优化大数据量展示
+- ✨ **Feature**: 支持添加和管理大语言模型配置
+
+### v0.2.1 系统启动优化
+
+- ⚡ **Performance**: 优化系统启动流程
+- 🐛 **Fix**: 修复聊天记录显示问题
+
+### v0.2.0 架构升级
+
+- 🔧 **Refactor**: 实现前后端分离架构，提升系统扩展性和维护性
 
 ---
 
