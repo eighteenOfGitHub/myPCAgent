@@ -24,7 +24,7 @@ def _handle_api_error(e: Exception) -> str:
         return f"[ERROR: {str(e)}]"
 
 def load_session_list() -> List[Tuple[str, int]]:
-    """加载会话列表用于 Dropdown"""
+    """加载会话列表，返回 (title, id) 格式的选项列表"""
     try:
         resp = requests.get(f"{API_BASE}/chat/sessions", timeout=5)
         resp.raise_for_status()
@@ -114,26 +114,34 @@ def chat_turn_stream(session_id: int, user_message: str, history: List) -> Gener
         history[-1] = (user_message, error_msg)
         yield history
 
+def ensure_session(session_id: Optional[int]) -> Optional[int]:
+    """确保存在有效会话ID，不存在则创建"""
+    if session_id:
+        return session_id
+    try:
+        resp = requests.post(
+            f"{API_BASE}/chat/sessions",
+            json=ChatSessionCreate(title="新会话", config_id=1).model_dump(),
+            timeout=10
+        )
+        resp.raise_for_status()
+        new_sess = ChatSessionRead.model_validate(resp.json())
+        return new_sess.id
+    except Exception as e:
+        print(f"创建会话失败: {e}")
+        return None
+
 def chat_turn(session_id: int, user_message: str, history: List, config_id: Optional[int] = None) -> List:
     """发送消息并获取完整响应（非流式），返回 Gradio 格式历史"""
     if not user_message:
         return history
     
     if not session_id:
-        try:
-            _, session_id, _, _ = create_new_session()
-            if not session_id:
-                error_msg = "[ERROR: 创建新会话失败]"
-                return history + [
-                    {"role": "user", "content": user_message},
-                    {"role": "assistant", "content": error_msg}
-                ]
-        except Exception as e:
-            error_msg = _handle_api_error(e)
-            return history + [
-                {"role": "user", "content": user_message},
-                {"role": "assistant", "content": error_msg}
-            ]
+        error_msg = "[ERROR: 缺少会话ID，请先创建会话]"
+        return history + [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": error_msg}
+        ]
     
     try:
         resp = requests.post(
