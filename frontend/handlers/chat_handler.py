@@ -35,12 +35,12 @@ def load_session_list() -> List[Tuple[str, int]]:
         print(f"加载会话列表失败: {e}")
         return []
 
-def create_new_session() -> Tuple[Any, int, List, List]:
+def create_new_session(first_message: str, config_id: Optional[int] = None) -> Tuple[Any, int, List, List]:
     """创建新会话"""
     try:
         resp = requests.post(
             f"{API_BASE}/chat/sessions",
-            json=ChatSessionCreate(title="新会话", config_id=1).model_dump(),
+            json=ChatSessionCreate(first_message=first_message, config_id=config_id).model_dump(),
             timeout=10
         )
         resp.raise_for_status()
@@ -114,14 +114,16 @@ def chat_turn_stream(session_id: int, user_message: str, history: List) -> Gener
         history[-1] = (user_message, error_msg)
         yield history
 
-def ensure_session(session_id: Optional[int]) -> Optional[int]:
+def ensure_session(session_id: Optional[int], first_message: Optional[str], config_id: Optional[int] = None) -> Optional[int]:
     """确保存在有效会话ID，不存在则创建"""
     if session_id:
         return session_id
+    if not first_message:
+        return None
     try:
         resp = requests.post(
             f"{API_BASE}/chat/sessions",
-            json=ChatSessionCreate(title="新会话", config_id=1).model_dump(),
+            json=ChatSessionCreate(first_message=first_message, config_id=config_id).model_dump(),
             timeout=10
         )
         resp.raise_for_status()

@@ -24,15 +24,15 @@ def render(llm_configs_state=None, default_id_state=None):
         updated_cache[session_id] = history
         return updated_cache, history
 
-    def _append_user_message(session_id, user_message, cache):
-        """先乐观写入用户消息到缓存与 Chatbot"""
+    def _append_user_message(session_id, user_message, cache, user_input_state):
+        """先乐观写入用户消息到缓存与 Chatbot，同时记录输入状态"""
         if not user_message:
-            return cache, cache.get(session_id, [])
+            return cache, cache.get(session_id, []), user_input_state
         history = list(cache.get(session_id, []))
         history.append({"role": "user", "content": user_message, "_pending": True})
         updated_cache = dict(cache)
         updated_cache[session_id] = history
-        return updated_cache, history
+        return updated_cache, history, user_message
 
     def _send_message(session_id, user_message, cache, config_id):
         """发送消息（非流式）并写入缓存"""
@@ -50,11 +50,11 @@ def render(llm_configs_state=None, default_id_state=None):
 
     def _new_chat():
         """新建会话：重置会话ID、输入框、聊天记录"""
-        return None, "", gr.update(value=[])
+        return None, "", gr.update(value=[]), ""
 
-    def _ensure_session_and_refresh(session_id):
+    def _ensure_session_and_refresh(session_id, user_message):
         """确保会话ID并刷新左侧列表"""
-        new_sid = ensure_session(session_id)
+        new_sid = ensure_session(session_id, user_message)
         return new_sid, load_session_list()
 
     def _sync_nav_buttons(nav_items):
@@ -63,9 +63,9 @@ def render(llm_configs_state=None, default_id_state=None):
         for idx in range(MAX_NAV_BUTTONS):
             if idx < len(nav_items):
                 title, _sid = nav_items[idx]
-                updates.append(gr.Button.update(value=title, visible=True))
+                updates.append(gr.update(value=title, visible=True))
             else:
-                updates.append(gr.Button.update(visible=False))
+                updates.append(gr.update(visible=False))
         return updates
 
     MAX_NAV_BUTTONS = 20
@@ -83,6 +83,7 @@ def render(llm_configs_state=None, default_id_state=None):
         llm_configs_state = gr.State(value=[])
     if default_id_state is None:
         default_id_state = gr.State(value=None)
+    user_input_state = gr.State("")
 
     # --- UI 布局 ---
     with gr.Row():
@@ -128,7 +129,7 @@ def render(llm_configs_state=None, default_id_state=None):
     new_chat_btn.click(
         _new_chat,
         inputs=[],
-        outputs=[session_id_state, msg_input, chatbot],
+        outputs=[session_id_state, msg_input, chatbot, user_input_state],
     )
 
     for idx, btn in enumerate(nav_buttons):
@@ -150,15 +151,15 @@ def render(llm_configs_state=None, default_id_state=None):
 
     msg_input.submit(
         _append_user_message,
-        inputs=[session_id_state, msg_input, chat_history_state],
-        outputs=[chat_history_state, chatbot],
+        inputs=[session_id_state, msg_input, chat_history_state, user_input_state],
+        outputs=[chat_history_state, chatbot, user_input_state],
     ).then(
         lambda: "",
         None,
         msg_input
     ).then(
         _ensure_session_and_refresh,
-        inputs=[session_id_state],
+        inputs=[session_id_state, user_input_state],
         outputs=[session_id_state, nav_items_state],
     ).then(
         _sync_nav_buttons,
@@ -166,7 +167,7 @@ def render(llm_configs_state=None, default_id_state=None):
         outputs=nav_buttons,
     ).then(
         _send_message,
-        inputs=[session_id_state, msg_input, chat_history_state, default_id_state],
+        inputs=[session_id_state, user_input_state, chat_history_state, default_id_state],
         outputs=[chat_history_state, chatbot],
     )
 

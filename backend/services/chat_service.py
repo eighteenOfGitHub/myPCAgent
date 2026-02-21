@@ -23,6 +23,8 @@ class ChatService:
     所有状态从数据库读取，服务本身无状态。
     """
 
+    TITLE_PROMPT = "请为以下用户的首条消息生成一个简短的会话标题，20 字以内，直接返回标题："
+
     def __init__(self):
         pass
 
@@ -61,8 +63,26 @@ class ChatService:
         else:
             raise ValueError(f"不支持的 LLM 提供商: {config.provider}")
 
-    def create_session(self, title: str, config_id: int) -> ChatSession:
-        session_obj = ChatSession(title=title, config_id=config_id)
+    def create_session(self, first_message: str, config_id: Optional[int] = None) -> ChatSession:
+        """基于首条用户消息生成标题并创建会话"""
+        user_first_message = (first_message or "").strip()
+        llm_service = get_llm_setting_service()
+
+        config = None
+        if config_id is not None:
+            config = llm_service.get_by_id(config_id)
+        if config is None:
+            config = llm_service.get_active()
+
+        if config is None:
+            raise ValueError("未找到可用的 LLM 配置")
+
+        llm = self._get_llm_client(config)
+        prompt = f"{self.TITLE_PROMPT}\n\n用户消息：{user_first_message or '新对话'}"
+        response = llm.invoke([HumanMessage(content=prompt)])
+        generated_title = (getattr(response, "content", "") or "").strip() or "新对话"
+
+        session_obj = ChatSession(title=generated_title, config_id=config.id)
         with get_db_session() as session:
             session.add(session_obj)
             session.commit()
