@@ -24,7 +24,7 @@ async def create_session(
 ):
     try:
         session = service.create_session(
-            title=session_create.title,
+            first_message=session_create.first_message,
             config_id=session_create.config_id,
         )
         return session

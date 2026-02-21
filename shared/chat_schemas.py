@@ -6,8 +6,12 @@ from typing import Optional
 
 # --- Chat Session Schemas ---
 class ChatSessionCreate(BaseModel):
-    title: str = "新对话"
-    config_id: int
+    # 用户首条消息，用于生成会话标题
+    first_message: str
+    # 可选：允许前端占位，后端将使用默认 LLM 生成标题
+    title: Optional[str] = None
+    # 可选：未提供时由后端选择默认配置
+    config_id: Optional[int] = None
 
 class ChatSessionRead(BaseModel):
     id: int
