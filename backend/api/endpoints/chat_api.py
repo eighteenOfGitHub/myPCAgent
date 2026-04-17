@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import List
+import json
 
 from shared.chat_schemas import (
     ChatSessionCreate,
@@ -87,35 +88,24 @@ async def chat_stream(
     request: ChatTurnRequest,
     service: ChatService = Depends(get_chat_service),
 ):
-    # 验证会话存在
     if not service.get_session(request.session_id):
         raise HTTPException(status_code=404, detail="会话不存在")
 
-    # 先保存用户消息
-    service._save_message(request.session_id, "user", request.user_message)
-
-    full_reply = ""
-
     async def event_generator():
-        nonlocal full_reply
-        try:
-            for token in service.chat_turn_stream(request.session_id, request.user_message):
-                if token.startswith("[ERROR:"):
-                    yield f"data: {token}\n\n"
-                    break
-                full_reply += token
-                yield f"data: {token}\n\n"
-        finally:
-            # 流结束后保存助手完整回复（仅当无错误）
-            if full_reply and not full_reply.startswith("[ERROR:"):
-                service._save_message(request.session_id, "assistant", full_reply)
-                # 更新会话更新时间
-                session = service.get_session(request.session_id)
-                if session:
-                    from datetime import datetime
-                    session.updated_at = datetime.utcnow()
-                    service._session.add(session)
-                    service._session.commit()
+        for token in service.chat_turn_stream(
+            request.session_id,
+            request.user_message or "",
+            request.config_id,
+        ):
+            if token.startswith("[ERROR:"):
+                yield f"data: {json.dumps(token, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                break
+
+            # 关键：JSON 包一层，避免 token 内换行破坏 SSE 事件格式
+            yield f"data: {json.dumps(token, ensure_ascii=False)}\n\n"
+
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

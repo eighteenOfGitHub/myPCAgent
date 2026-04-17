@@ -5,6 +5,7 @@ from frontend.handlers.chat_handler import (
     load_session_list,
     load_messages,
     chat_turn,
+    chat_turn_stream,
     ensure_session,
 )
 from frontend.handlers.llm_setting_handler import build_choices_from_configs
@@ -47,6 +48,18 @@ def render(llm_configs_state=None, default_id_state=None):
         updated_cache = dict(cache)
         updated_cache[session_id] = history
         return updated_cache, history
+    
+    def _send_message_stream(session_id, user_message, cache, config_id):
+        """发送消息（流式）并持续写入缓存"""
+        if not user_message or not session_id:
+            yield cache, (cache.get(session_id, []) if session_id else [])
+            return
+
+        current = cache.get(session_id, [])
+        for streamed_history in chat_turn_stream(session_id, user_message, current, config_id):
+            updated_cache = dict(cache)
+            updated_cache[session_id] = streamed_history
+            yield updated_cache, streamed_history
 
     def _new_chat():
         """新建会话：重置会话ID、输入框、聊天记录"""
@@ -115,7 +128,12 @@ def render(llm_configs_state=None, default_id_state=None):
                         interactive=True,
                         allow_custom_value=False,
                     )
-            chatbot = gr.Chatbot(elem_id="chat_display", height=500, label="对话历史")
+            chatbot = gr.Chatbot(
+                elem_id="chat_display", 
+                height=500, 
+                label="对话历史",
+                render_markdown=True,
+                )
             with gr.Row():
                 msg_input = gr.Textbox(
                     placeholder="请输入您的问题，按回车或点击发送...",
@@ -166,7 +184,7 @@ def render(llm_configs_state=None, default_id_state=None):
         inputs=[nav_items_state],
         outputs=nav_buttons,
     ).then(
-        _send_message,
+        _send_message_stream, # _send_message,
         inputs=[session_id_state, user_input_state, chat_history_state, default_id_state],
         outputs=[chat_history_state, chatbot],
     )

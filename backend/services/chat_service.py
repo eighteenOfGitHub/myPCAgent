@@ -1,6 +1,7 @@
 # backend/services/chat_service.py
 
 import os
+import logging
 from typing import List, Optional, Generator
 from datetime import datetime, timezone
 from sqlalchemy import desc
@@ -16,6 +17,8 @@ from backend.services import get_llm_setting_service
 from backend.core.database import get_db_session
 
 
+
+logger = logging.getLogger(__name__)
 
 class ChatService:
     """
@@ -198,28 +201,79 @@ class ChatService:
 
     # ======================
     # 流式：生成器
-    # 注意：此方法不保存消息！由调用方在流结束后处理
     # ======================
-    def chat_turn_stream(self, session_id: int, user_message: str) -> Generator[str, None, None]:
+    def chat_turn_stream(
+        self,
+        session_id: int,
+        user_message: str,
+        config_id: Optional[int] = None,
+    ) -> Generator[str, None, None]:
         session = self.get_session(session_id)
         if not session:
+            logger.warning("chat_turn_stream session_missing session_id=%s", session_id)
             yield "[ERROR: 会话不存在]"
             return
-        config = session.config
+
+        llm_service = get_llm_setting_service()
+        config = None
+        if config_id is not None:
+            config = llm_service.get_by_id(config_id)
+        if config is None:
+            config = llm_service.get_active()
         if not config:
+            logger.error("chat_turn_stream config_missing session_id=%s", session_id)
             yield "[ERROR: LLM 配置丢失]"
             return
 
-        history = self._build_history(session_id, user_message)
-        llm = self._get_llm_client(config)
+        logger.debug(
+            "chat_turn_stream start session_id=%s config_id=%s provider=%s model=%s prompt_len=%s",
+            session_id, config.id, config.provider, config.model_name, len(user_message or ""),
+        )
 
         try:
+            self._save_message(
+                session_id=session_id,
+                role="user",
+                content=user_message or "",
+                llm_provider=config.provider,
+                llm_model_name=config.model_name,
+            )
+        except Exception as e:
+            logger.error("chat_turn_stream save_user_failed session_id=%s err=%s", session_id, e)
+            yield f"[ERROR: 用户消息保存失败: {str(e)}]"
+            return
+
+        history = self._build_history(session_id)
+        llm = self._get_llm_client(config)
+
+        assistant_reply = ""
+        try:
             for chunk in llm.stream(history):
-                token = chunk.content
+                token = getattr(chunk, "content", "") or ""
                 if token:
+                    assistant_reply += token
                     yield token
         except Exception as e:
+            logger.error("chat_turn_stream llm_stream_error session_id=%s err=%s", session_id, e)
             yield f"[ERROR: {str(e)}]"
+            return
+
+        if assistant_reply:
+            self._save_message(
+                session_id=session_id,
+                role="assistant",
+                content=assistant_reply,
+                llm_provider=config.provider,
+                llm_model_name=config.model_name,
+            )
+            session.updated_at = datetime.now(timezone.utc)
+            with get_db_session() as db_session:
+                db_session.add(session)
+                db_session.commit()
+            logger.debug(
+                "chat_turn_stream completed session_id=%s reply_len=%s",
+                session_id, len(assistant_reply),
+            )
 
     def delete_session(self, session_id: int) -> bool:
         with get_db_session() as session:

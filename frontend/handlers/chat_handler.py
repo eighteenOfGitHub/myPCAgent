@@ -80,39 +80,105 @@ def load_messages(session_id: int) -> Tuple[List, List]:
     except Exception as e:
         print(f"加载消息失败: {e}")
         return []
-
-def chat_turn_stream(session_id: int, user_message: str, history: List) -> Generator:
-    """流式发送消息并生成响应"""
-    if not session_id:
-        yield [(f"[ERROR: 请先创建或选择一个会话]", "")]
-        return
     
-    history.append((user_message, ""))
-    yield history
+def _normalize_stream_token(raw: str) -> str:
+    """兼容 SSE 里可能出现的 JSON/转义文本，尽量还原 markdown 字符"""
+    s = raw.strip()
+    if not s:
+        return ""
+
+    # 场景1：后端直接 data: "xxx"
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        try:
+            s = json.loads(s)
+        except Exception:
+            pass
+
+    # 场景2：后端 data: {"token":"..."} / {"delta":"..."}
+    if s.startswith("{") and s.endswith("}"):
+        try:
+            obj = json.loads(s)
+            s = obj.get("token") or obj.get("delta") or obj.get("content") or ""
+        except Exception:
+            pass
+
+    # 还原常见转义，避免 \\n 原样显示
+    s = s.replace("\\n", "\n").replace("\\t", "\t")
+    return s
+
+def chat_turn_stream(session_id: int, user_message: str, history: List, config_id: Optional[int] = None) -> Generator[List[dict], None, None]:
+    """流式发送消息：中间阶段纯文本，结束后补发最终 markdown 版"""
+    if not user_message:
+        yield history
+        return
+
+    if not session_id:
+        yield history + [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": "[ERROR: 请先创建或选择一个会话]"},
+        ]
+        return
+
+    base_history = [
+        m for m in history
+        if not (isinstance(m, dict) and m.get("_pending"))
+    ]
+
+    working = list(base_history) + [
+        {"role": "user", "content": user_message},
+        {"role": "assistant", "content": ""},
+    ]
+    yield working
 
     full_reply = ""
     try:
         with requests.post(
             f"{API_BASE}/chat/stream",
-            json={"session_id": session_id, "user_message": user_message},
+            json={"session_id": session_id, "user_message": user_message, "config_id": config_id},
             stream=True,
-            timeout=60
+            timeout=120,
         ) as r:
             r.raise_for_status()
+
             for line in r.iter_lines():
-                if line:
-                    if line.startswith(b"data: "):
-                        token = line[6:].decode()
-                        if token.startswith("[ERROR:"):
-                            full_reply = token
-                            break
-                        full_reply += token
-                        history[-1] = (user_message, full_reply)
-                        yield history
+                if not line or not line.startswith(b"data: "):
+                    continue
+
+                raw = line[6:].decode("utf-8", errors="ignore")
+                if raw == "[DONE]":
+                    break
+
+                # 关键：后端发的是 JSON string，这里反序列化还原 \n
+                try:
+                    token = json.loads(raw)
+                except Exception:
+                    token = raw
+
+                if isinstance(token, str) and token.startswith("[ERROR:"):
+                    full_reply = token
+                    break
+
+                if not token:
+                    continue
+
+                full_reply += token
+                preview_text = full_reply.replace("```", "'''")
+                working = list(working)
+                working[-1] = {"role": "assistant", "content": preview_text}
+                yield working
+
+        if full_reply:
+            final_view = list(working)
+            final_view[-1] = {"role": "assistant", "content": full_reply}
+            yield final_view
+        else:
+            working[-1]["content"] = "[ERROR: 空响应]"
+            yield working
+
     except Exception as e:
         error_msg = _handle_api_error(e)
-        history[-1] = (user_message, error_msg)
-        yield history
+        working[-1]["content"] = error_msg
+        yield working
 
 def ensure_session(session_id: Optional[int], first_message: Optional[str], config_id: Optional[int] = None) -> Optional[int]:
     """确保存在有效会话ID，不存在则创建"""
